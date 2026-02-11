@@ -181,6 +181,9 @@ intensity = "python3 custom_scripts/intensity_analysis.py"
 report = "python3 custom_scripts/daily_report.py"
 today = "python3 custom_scripts/fetch_today.py"
 workouts = "python3 custom_scripts/fetch_workouts.py"
+readiness = "python3 custom_scripts/training_readiness.py"
+trainer = "python3 custom_scripts/trainer_report.py"
+full-report = "python3 custom_scripts/generate_full_report.py"
 
 [tool.pdm.dev-dependencies]
 dev = [
