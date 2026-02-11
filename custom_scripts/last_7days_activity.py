@@ -1,6 +1,9 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from garminconnect import Garmin
 import garth
-import os
 from datetime import date, timedelta, datetime
 from config import email, password, MODERATE_MIN, MODERATE_MAX, VIGOROUS_MIN
 

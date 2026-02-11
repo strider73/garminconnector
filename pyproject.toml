@@ -170,17 +170,17 @@ reset-vcr = {composite = ["clean-vcr", "record-vcr"]}
 all = {composite = ["lint", "codespell", "pre-commit-run", "test"]}
 
 # Custom Garmin data scripts
-profile = "python3 show_profile.py"
-health = "python3 weekly_health_report.py"
-weekly = "python3 weekly_report.py"
-monthly = "python3 monthly_report.py"
-sleep = "python3 fetch_4weeks_sleep.py"
-activity = "python3 last_7days_activity.py"
-heart-rate = "python3 heart_rate_analysis.py"
-intensity = "python3 intensity_analysis.py"
-report = "python3 daily_report.py"
-today = "python3 fetch_today.py"
-workouts = "python3 fetch_workouts.py"
+profile = "python3 custom_scripts/show_profile.py"
+health = "python3 custom_scripts/weekly_health_report.py"
+weekly = "python3 custom_scripts/weekly_report.py"
+monthly = "python3 custom_scripts/monthly_report.py"
+sleep = "python3 custom_scripts/fetch_4weeks_sleep.py"
+activity = "python3 custom_scripts/last_7days_activity.py"
+heart-rate = "python3 custom_scripts/heart_rate_analysis.py"
+intensity = "python3 custom_scripts/intensity_analysis.py"
+report = "python3 custom_scripts/daily_report.py"
+today = "python3 custom_scripts/fetch_today.py"
+workouts = "python3 custom_scripts/fetch_workouts.py"
 
 [tool.pdm.dev-dependencies]
 dev = [
