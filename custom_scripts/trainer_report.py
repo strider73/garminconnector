@@ -4,10 +4,14 @@ Trainer Weekly Report - Quick 5-min read before session
 Combines weekly activity + heart rate/recovery + training load
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from garminconnect import Garmin
 import garth
-import os
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from config import email, password
 
 def safe_get(data, key, default=None):
     if data is None:
@@ -29,7 +33,13 @@ try:
     print("Connecting to Garmin...")
 
     garth_home = os.path.expanduser("~/.garth")
-    garth.resume(garth_home)
+    os.makedirs(garth_home, exist_ok=True)
+
+    try:
+        garth.resume(garth_home)
+    except:
+        garth.login(email, password)
+        garth.save(garth_home)
 
     garmin = Garmin()
     garmin.login(tokenstore=garth_home)
@@ -65,6 +75,7 @@ try:
         row = {
             'date': day_name,
             'sleep_hours': None, 'sleep_score': None,
+            'sleep_start': None, 'sleep_end': None,
             'deep_mins': None, 'rem_mins': None,
             'resting_hr': None, 'max_hr': None, 'hrv': None,
             'body_battery': None, 'stress': None,
@@ -91,6 +102,13 @@ try:
                         totals['deep'] += row['deep_mins']
                         totals['rem'] += row['rem_mins']
                         counts['sleep'] += 1
+
+                    start_ts = safe_get(daily_sleep, 'sleepStartTimestampGMT')
+                    end_ts = safe_get(daily_sleep, 'sleepEndTimestampGMT')
+                    if start_ts:
+                        row['sleep_start'] = datetime.fromtimestamp(start_ts / 1000).strftime('%I:%M %p')
+                    if end_ts:
+                        row['sleep_end'] = datetime.fromtimestamp(end_ts / 1000).strftime('%I:%M %p')
 
                 sleep_scores = sleep_data.get('sleepScores')
                 if sleep_scores:
@@ -195,6 +213,26 @@ try:
         print(f"{row['date']:<10} | {sleep_hrs:>5} {sleep_score:>5} | {rest_hr:>6} {mod:>7} {vig:>6} | {steps:>8} {cal:>6} {dist:>6}")
 
     print("-" * 90)
+
+    # ===== TABLE: SLEEP & RECOVERY =====
+    print("\n" + "-" * 90)
+    print("  SLEEP & RECOVERY")
+    print("-" * 90)
+    print(f"{'Date':<10} | {'Bedtime':>8} | {'Wake Up':>8} | {'Hrs':>5} | {'Score':>5} | {'Deep':>5} | {'REM':>5} | {'HRV':>5} | {'Rest HR':>7}")
+    print("-" * 90)
+
+    for row in all_data:
+        bed = row['sleep_start'] if row['sleep_start'] else "-"
+        wake = row['sleep_end'] if row['sleep_end'] else "-"
+        hrs = f"{row['sleep_hours']:.1f}" if row['sleep_hours'] else "-"
+        score = str(row['sleep_score']) if row['sleep_score'] else "-"
+        deep = f"{row['deep_mins']}m" if row['deep_mins'] else "-"
+        rem = f"{row['rem_mins']}m" if row['rem_mins'] else "-"
+        hrv = str(row['hrv']) if row['hrv'] else "-"
+        rhr = str(row['resting_hr']) if row['resting_hr'] else "-"
+        print(f"{row['date']:<10} | {bed:>8} | {wake:>8} | {hrs:>5} | {score:>5} | {deep:>5} | {rem:>5} | {hrv:>5} | {rhr:>7}")
+
+    print("-" * 70)
 
     # ===== TABLE 2: HEART RATE & RECOVERY =====
     print("\n" + "-" * 80)

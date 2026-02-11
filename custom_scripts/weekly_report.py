@@ -7,10 +7,14 @@ Weekly Report - Daily breakdown for Tennis Player
 - Weekly summary with suggestions
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from garminconnect import Garmin
 import garth
-import os
 from datetime import date, timedelta
+from config import email, password
 
 def safe_get(data, key, default=None):
     """Safely get value, returning default if None"""
@@ -23,7 +27,13 @@ try:
     print("Connecting to Garmin...")
 
     garth_home = os.path.expanduser("~/.garth")
-    garth.resume(garth_home)
+    os.makedirs(garth_home, exist_ok=True)
+
+    try:
+        garth.resume(garth_home)
+    except:
+        garth.login(email, password)
+        garth.save(garth_home)
 
     garmin = Garmin()
     garmin.login(tokenstore=garth_home)
