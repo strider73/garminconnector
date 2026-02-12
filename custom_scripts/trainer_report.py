@@ -195,26 +195,7 @@ try:
 
         all_data.append(row)
 
-    # ===== TABLE 1: DAILY OVERVIEW =====
-    print("\n" + "-" * 90)
-    print(f"{'Date':<10} | {'Sleep':^12} | {'Heart Rate (bpm)':^22} | {'Activity':^35}")
-    print(f"{'':10} | {'Hrs':>5} {'Score':>5} | {'Rest':>6} {'Mod':>7} {'Vig':>6} | {'Steps':>8} {'Cal':>6} {'Dist':>6}")
-    print("-" * 90)
-
-    for row in all_data:
-        sleep_hrs = f"{row['sleep_hours']:.1f}" if row['sleep_hours'] else "-"
-        sleep_score = str(row['sleep_score']) if row['sleep_score'] else "-"
-        rest_hr = str(row['resting_hr']) if row['resting_hr'] else "-"
-        mod = f"{row['moderate_mins']}m" if row['moderate_mins'] else "-"
-        vig = f"{row['vigorous_mins']}m" if row['vigorous_mins'] else "-"
-        steps = f"{row['steps']:,}" if row['steps'] else "-"
-        cal = str(int(row['calories'])) if row['calories'] else "-"
-        dist = f"{row['distance']:.1f}km" if row['distance'] else "-"
-        print(f"{row['date']:<10} | {sleep_hrs:>5} {sleep_score:>5} | {rest_hr:>6} {mod:>7} {vig:>6} | {steps:>8} {cal:>6} {dist:>6}")
-
-    print("-" * 90)
-
-    # ===== TABLE: SLEEP & RECOVERY =====
+    # ===== TABLE 1: SLEEP & RECOVERY =====
     print("\n" + "-" * 90)
     print("  SLEEP & RECOVERY")
     print("-" * 90)
@@ -232,26 +213,28 @@ try:
         rhr = str(row['resting_hr']) if row['resting_hr'] else "-"
         print(f"{row['date']:<10} | {bed:>8} | {wake:>8} | {hrs:>5} | {score:>5} | {deep:>5} | {rem:>5} | {hrv:>5} | {rhr:>7}")
 
-    print("-" * 70)
+    print("-" * 90)
 
-    # ===== TABLE 2: HEART RATE & RECOVERY =====
-    print("\n" + "-" * 80)
-    print("  HEART RATE & RECOVERY")
-    print("-" * 80)
-    print(f"{'Date':<10} | {'Rest HR':>8} | {'Max HR':>8} | {'HRV':>6} | {'Battery':>8} | {'Stress':>7}")
-    print("-" * 80)
+    # ===== TABLE 2: ACTIVITY & HEART RATE =====
+    print("\n" + "-" * 95)
+    print(f"{'Date':<10} | {'Steps':>8} {'Cal':>6} {'Dist':>6} | {'Rest':>5} {'Max':>5} {'Mod':>5} {'Vig':>5} | {'Batt':>5} {'Stress':>6}")
+    print("-" * 95)
 
     for row in all_data:
-        rest = str(row['resting_hr']) if row['resting_hr'] else "-"
+        steps = f"{row['steps']:,}" if row['steps'] else "-"
+        cal = str(int(row['calories'])) if row['calories'] else "-"
+        dist = f"{row['distance']:.1f}km" if row['distance'] else "-"
+        rest_hr = str(row['resting_hr']) if row['resting_hr'] else "-"
         max_hr = str(row['max_hr']) if row['max_hr'] else "-"
-        hrv = str(row['hrv']) if row['hrv'] else "-"
+        mod = f"{row['moderate_mins']}m" if row['moderate_mins'] else "-"
+        vig = f"{row['vigorous_mins']}m" if row['vigorous_mins'] else "-"
         bb = str(row['body_battery']) if row['body_battery'] else "-"
         stress = str(row['stress']) if row['stress'] else "-"
-        print(f"{row['date']:<10} | {rest:>8} | {max_hr:>8} | {hrv:>6} | {bb:>8} | {stress:>7}")
+        print(f"{row['date']:<10} | {steps:>8} {cal:>6} {dist:>6} | {rest_hr:>5} {max_hr:>5} {mod:>5} {vig:>5} | {bb:>5} {stress:>6}")
 
-    print("-" * 80)
+    print("-" * 95)
 
-    # ===== TABLE 3: TRAINING & CALORIES =====
+    # ===== TABLE 4: TRAINING & CALORIES =====
     print("\n" + "-" * 80)
     print("  TRAINING & CALORIES")
     print("-" * 80)
