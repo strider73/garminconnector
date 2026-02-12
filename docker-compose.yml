@@ -1,0 +1,11 @@
+services:
+  garmin-report:
+    build: .
+    volumes:
+      - ./config.py:/app/config.py:ro
+      - garth-tokens:/root/.garth
+    environment:
+      - TZ=Australia/Sydney
+
+volumes:
+  garth-tokens:
