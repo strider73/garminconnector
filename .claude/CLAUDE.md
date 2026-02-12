@@ -48,3 +48,4 @@ pdm run clean       # Clean __pycache__ and .pyc files
 ## Sensitive Files
 - `config.py` - Contains credentials, do NOT commit to public repos
 - `~/.garminconnect` - OAuth tokens
+@import /Users/chrislee/.claude/shared/n8n-mcp-instructions.md

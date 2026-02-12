@@ -14,6 +14,9 @@ python-garminconnect/
 # Credentials (contains passwords)
 config.py
 
+# MCP config (contains API keys)
+.mcp.json
+
 # Virtual environments
 .venv/
 .pdm-python
