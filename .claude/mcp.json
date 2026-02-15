@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "postgres-server": {
+      "type": "stdio",
+      "command": "mcp-server-postgres",
+      "args": [
+        "postgresql://postgres:5785Ch00@adventuretube.net:5432/adventuretube"
+      ]
+    }
+  }
+}

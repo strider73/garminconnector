@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from garminconnect import Garmin
 import garth
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from config import email, password, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 TRAINING_STATUS_MAP = {
@@ -35,18 +35,28 @@ try:
 
     print(f"Connected as: {garmin.get_full_name()}\n")
 
-    today = date.today()
+    if len(sys.argv) > 1:
+        today = date.fromisoformat(sys.argv[1])
+    else:
+        today = date.today()
     today_str = today.isoformat()
+    yesterday = today - timedelta(days=1)
+    yesterday_str = yesterday.isoformat()
 
-    # ===== TRAINING STATUS =====
-    status = garmin.get_training_status(today_str)
+    # ==========================================================
+    # 1) RECOVERY (yesterday's training + today's recovery data)
+    # ==========================================================
+    print("=" * 55)
+    print(f"  1. RECOVERY - {today_str}")
+    print("=" * 55)
+
+    # --- Yesterday's Training Status ---
+    status = garmin.get_training_status(yesterday_str)
+    device_status = {}
+    device_balance = {}
 
     if status:
-        print(f"\n{'=' * 55}")
-        print(f"  TRAINING STATUS - {today_str}")
-        print("=" * 55)
-
-        # --- VO2 Max ---
+        # VO2 Max
         vo2 = status.get("mostRecentVO2Max", {})
         generic = vo2.get("generic", {}) if vo2 else {}
         if generic:
@@ -59,10 +69,9 @@ try:
             if fitness_age:
                 print(f"    Fitness Age:    {fitness_age}")
 
-        # --- Training Status (from latest device data) ---
+        # Training Status
         latest = status.get("mostRecentTrainingStatus", {})
         latest_data = latest.get("latestTrainingStatusData", {}) if latest else {}
-        # Get first device's data
         device_status = next(iter(latest_data.values()), {}) if latest_data else {}
 
         if device_status:
@@ -70,17 +79,14 @@ try:
             ts_label = TRAINING_STATUS_MAP.get(ts_code, str(ts_code))
             feedback = device_status.get("trainingStatusFeedbackPhrase", "")
             since_date = device_status.get("sinceDate", "")
-            paused = device_status.get("trainingPaused", False)
 
             print(f"\n  Training Status:  {ts_label}")
             if feedback:
                 print(f"    Feedback:       {feedback}")
             if since_date:
                 print(f"    Since:          {since_date}")
-            if paused:
-                print(f"    Paused:         Yes")
 
-            # --- Acute/Chronic Workload ---
+            # Training Load
             acwr = device_status.get("acuteTrainingLoadDTO", {})
             if acwr:
                 acute = acwr.get("dailyTrainingLoadAcute")
@@ -99,7 +105,7 @@ try:
                 if acwr_status:
                     print(f"  Load Status:      {acwr_status} ({acwr_pct}%)")
 
-        # --- Training Load Balance ---
+        # Monthly Load Balance
         balance = status.get("mostRecentTrainingLoadBalance", {})
         balance_data = balance.get("metricsTrainingLoadBalanceDTOMap", {}) if balance else {}
         device_balance = next(iter(balance_data.values()), {}) if balance_data else {}
@@ -129,7 +135,38 @@ try:
             if feedback:
                 print(f"  Feedback:         {feedback}")
 
-    # ===== 7-DAY TRENDS FROM DATABASE =====
+    # --- Sleep Timing (last night) ---
+    try:
+        sleep_data = garmin.get_sleep_data(today_str)
+        sleep_dto = None
+        if sleep_data and "dailySleepDTO" in sleep_data:
+            dto = sleep_data["dailySleepDTO"]
+            start_local = dto.get("sleepStartTimestampLocal")
+            start_gmt = dto.get("sleepStartTimestampGMT")
+            end_local = dto.get("sleepEndTimestampLocal")
+            end_gmt = dto.get("sleepEndTimestampGMT")
+            start_ts = start_local if start_local is not None else start_gmt
+            end_ts = end_local if end_local is not None else end_gmt
+            if start_ts and end_ts:
+                sleep_dto = dto
+
+        if sleep_dto:
+            bed_time = datetime.utcfromtimestamp(start_ts / 1000)
+            wake_time = datetime.utcfromtimestamp(end_ts / 1000)
+            sleep_dur = (end_ts - start_ts) / 1000 / 3600
+            print(f"\n  --- Sleep Timing (last night) ---")
+            print(f"  Bed Time:         {bed_time.strftime('%I:%M %p, %a %b %d')}")
+            print(f"  Wake Time:        {wake_time.strftime('%I:%M %p, %a %b %d')}")
+            print(f"  Duration:         {sleep_dur:.1f}h")
+        else:
+            print(f"\n  --- Sleep Timing (last night) ---")
+            print(f"  No sleep data (watch not worn?)")
+    except Exception as e:
+        print(f"\n  (Could not fetch sleep timing: {e})")
+
+    # ==========================================================
+    # 2) TRAINING READINESS (computed from recovery data)
+    # ==========================================================
     try:
         import psycopg2
         conn = psycopg2.connect(
@@ -141,58 +178,28 @@ try:
             SELECT report_date, acute_load, acwr_ratio,
                    sleep_hours, resting_hr, hrv_last_night,
                    body_battery_charged, sleep_score,
-                   body_battery_drained, hrv_weekly_avg
+                   body_battery_drained, hrv_weekly_avg,
+                   sleep_start, sleep_end
             FROM garmin_daily_metrics
-            WHERE report_date >= %s
+            WHERE report_date >= %s AND report_date <= %s
             ORDER BY report_date
-        """, ((today - timedelta(days=6)),))
+        """, ((today - timedelta(days=6)), today))
         rows = cur.fetchall()
         conn.close()
 
         if rows:
-            print(f"\n{'=' * 55}")
-            print(f"  7-DAY TRENDS (from database)")
-            print("=" * 55)
-            print(f"\n  {'Date':<12} {'Load':>6} {'ACWR':>5} {'Sleep':>5} {'RHR':>4} {'HRV':>5} {'BB+':>4}")
-            print(f"  {'-'*12} {'-'*6} {'-'*5} {'-'*5} {'-'*4} {'-'*5} {'-'*4}")
+            def is_watch_worn(row):
+                """Detect if watch was worn overnight based on HRV and Body Battery."""
+                hrv, bb = row[5], row[6]
+                return hrv is not None and (bb is None or bb > 0)
 
-            for row in rows:
-                rd, load, acwr, slp_h, rhr, hrv, bb = row[:7]
-                print(f"  {rd.isoformat():<12} "
-                      f"{load if load is not None else '-':>6} "
-                      f"{acwr if acwr is not None else '-':>5} "
-                      f"{f'{slp_h:.1f}' if slp_h is not None else '-':>5} "
-                      f"{rhr if rhr is not None else '-':>4} "
-                      f"{f'{hrv:.0f}' if hrv is not None else '-':>5} "
-                      f"{bb if bb is not None else '-':>4}")
-
-            # Averages
-            vals = lambda idx: [r[idx] for r in rows if r[idx] is not None]
+            worn_rows = [r for r in rows if is_watch_worn(r)]
+            vals = lambda idx: [r[idx] for r in worn_rows if r[idx] is not None]
             avg_fn = lambda v: sum(v) / len(v) if v else None
 
-            load_avg = avg_fn(vals(1))
-            acwr_avg = avg_fn(vals(2))
-            sleep_avg = avg_fn(vals(3))
-            rhr_avg = avg_fn(vals(4))
-            hrv_avg = avg_fn(vals(5))
-
-            print(f"\n  {'Averages:':<12} "
-                  f"{f'{load_avg:.0f}' if load_avg else '-':>6} "
-                  f"{f'{acwr_avg:.2f}' if acwr_avg else '-':>5} "
-                  f"{f'{sleep_avg:.1f}' if sleep_avg else '-':>5} "
-                  f"{f'{rhr_avg:.0f}' if rhr_avg else '-':>4} "
-                  f"{f'{hrv_avg:.0f}' if hrv_avg else '-':>5}")
-
-            # ===== COMPUTED TRAINING READINESS =====
-            # Use today's row (last row) for readiness calculation
-            # Scoring: each factor 0-100, weighted average
-            #   ACWR:          25%  (most predictive of injury/overtraining)
-            #   Sleep:         25%  (hours + quality)
-            #   HRV:           20%  (autonomic recovery)
-            #   RHR:           15%  (cardiovascular recovery)
-            #   Body Battery:  15%  (Garmin's energy estimate)
-
-            t = rows[-1]  # today's data
+            # Find today's row (last row should match, but be safe)
+            t = next((r for r in reversed(rows) if r[0] == today), rows[-1])
+            watch_worn = is_watch_worn(t)
             t_rhr, t_hrv, t_bb = t[4], t[5], t[6]
             t_sleep_h, t_sleep_score = t[3], t[7]
             t_bb_drained, t_hrv_weekly = t[8], t[9]
@@ -203,25 +210,30 @@ try:
                 acwr_dto = device_status.get("acuteTrainingLoadDTO", {})
                 t_acwr = acwr_dto.get("dailyAcuteChronicWorkloadRatio") if acwr_dto else None
             if t_acwr is None:
-                t_acwr = t[2]  # fallback to DB
+                t_acwr = t[2]
 
             scores = {}
             details = {}
 
+            if not watch_worn:
+                print(f"\n{'=' * 55}")
+                print(f"  2. TRAINING READINESS - {today_str}")
+                print("=" * 55)
+                print(f"\n  *** WATCH NOT WORN OVERNIGHT ***")
+                print(f"  HRV, RHR, and Body Battery data unavailable.")
+                print(f"  Readiness score based on available data only.")
+
             # --- ACWR Score (25%) ---
-            # Sweet spot: 0.8-1.3 = 100, degrades outside
             if t_acwr is not None:
                 if 0.8 <= t_acwr <= 1.3:
                     scores["acwr"] = 100
                 elif t_acwr < 0.8:
                     scores["acwr"] = max(0, t_acwr / 0.8 * 100)
-                else:  # > 1.3
+                else:
                     scores["acwr"] = max(0, 100 - (t_acwr - 1.3) / 0.7 * 100)
                 details["acwr"] = f"ACWR {t_acwr:.1f}"
 
             # --- Sleep Score (25%) ---
-            # Use sleep_score if available, otherwise estimate from hours
-            # For 20yo athlete: 8h=100, 7h=75, 6h=50, <5h=20
             if t_sleep_score is not None:
                 scores["sleep"] = min(100, t_sleep_score)
                 details["sleep"] = f"Sleep score {t_sleep_score}"
@@ -236,10 +248,8 @@ try:
                     scores["sleep"] = max(10, t_sleep_h / 6 * 40)
                 details["sleep"] = f"{t_sleep_h:.1f}h sleep"
 
-            # --- HRV Score (20%) ---
-            # Compare last night HRV to weekly average
-            # Above avg = good recovery, below = stressed
-            if t_hrv is not None:
+            # --- HRV Score (20%) --- (skip if watch not worn)
+            if watch_worn and t_hrv is not None:
                 baseline = t_hrv_weekly if t_hrv_weekly else avg_fn(vals(5))
                 if baseline and baseline > 0:
                     hrv_pct = t_hrv / baseline
@@ -251,14 +261,12 @@ try:
                         scores["hrv"] = max(10, hrv_pct / 0.9 * 60)
                     details["hrv"] = f"HRV {t_hrv:.0f} (avg {baseline:.0f})"
                 else:
-                    scores["hrv"] = 60  # no baseline, assume neutral
+                    scores["hrv"] = 60
                     details["hrv"] = f"HRV {t_hrv:.0f}"
 
-            # --- RHR Score (15%) ---
-            # Yehwan baseline ~44bpm. Lower=better recovered
-            # 44=100, 48=80, 52=60, 56=40, 60+=20
+            # --- RHR Score (15%) --- (skip if watch not worn)
             BASELINE_RHR = 44
-            if t_rhr is not None:
+            if watch_worn and t_rhr is not None:
                 rhr_diff = t_rhr - BASELINE_RHR
                 if rhr_diff <= 0:
                     scores["rhr"] = 100
@@ -272,9 +280,8 @@ try:
                     scores["rhr"] = max(10, 40 - (rhr_diff - 12) * 5)
                 details["rhr"] = f"RHR {t_rhr} (base {BASELINE_RHR})"
 
-            # --- Body Battery Score (15%) ---
-            # BB charged amount: 80+=excellent, 60=good, 40=fair, <20=poor
-            if t_bb is not None:
+            # --- Body Battery Score (15%) --- (skip if watch not worn)
+            if watch_worn and t_bb is not None:
                 if t_bb >= 80:
                     scores["bb"] = 100
                 elif t_bb >= 60:
@@ -305,10 +312,14 @@ try:
                     level = "POOR"
                     msg = "Strongly consider a rest day."
 
-                print(f"\n{'=' * 55}")
-                print(f"  TRAINING READINESS (computed)")
-                print("=" * 55)
+                if watch_worn:
+                    print(f"\n{'=' * 55}")
+                    print(f"  2. TRAINING READINESS - {today_str}")
+                    print("=" * 55)
+
                 print(f"\n  Readiness Score:  {readiness}/100  [{level}]")
+                if not watch_worn:
+                    print(f"  (Based on ACWR + Sleep only — no watch data)")
                 print(f"  -> {msg}")
 
                 print(f"\n  --- Factor Breakdown ---")
@@ -325,8 +336,58 @@ try:
                         bar_len = int(scores[key] / 100 * 15)
                         bar = "#" * bar_len + "." * (15 - bar_len)
                         print(f"  {label:<14} {round(scores[key]):>3}/100  [{bar}]  ({details[key]})")
+                    elif not watch_worn and key in ("hrv", "rhr", "bb"):
+                        label, w = factor_labels[key]
+                        print(f"  {label:<14}     -    [  no watch data ]")
             else:
                 print(f"\n  (Not enough data to compute readiness)")
+
+            # ==========================================================
+            # 3) 7-DAY TRENDS
+            # ==========================================================
+            print(f"\n{'=' * 55}")
+            print(f"  3. 7-DAY TRENDS")
+            print("=" * 55)
+            print(f"\n  {'Date':<12} {'Load':>6} {'ACWR':>5} {'Sleep':>5} {'Bed':>7} {'Wake':>7} {'RHR':>4} {'HRV':>5} {'BB+':>4}")
+            print(f"  {'-'*12} {'-'*6} {'-'*5} {'-'*5} {'-'*7} {'-'*7} {'-'*4} {'-'*5} {'-'*4}")
+
+            for row in rows:
+                rd, load, acwr, slp_h, rhr, hrv, bb = row[:7]
+                s_start, s_end = row[10], row[11]
+                worn = is_watch_worn(row)
+                bed_str = s_start.strftime('%I:%M%p').lstrip('0').lower() if s_start else '-'
+                wake_str = s_end.strftime('%I:%M%p').lstrip('0').lower() if s_end else '-'
+                mark = '' if worn else '  *'
+                print(f"  {rd.isoformat():<12} "
+                      f"{load if load is not None else '-':>6} "
+                      f"{acwr if acwr is not None else '-':>5} "
+                      f"{f'{slp_h:.1f}' if slp_h is not None else '-':>5} "
+                      f"{bed_str:>7} "
+                      f"{wake_str:>7} "
+                      f"{rhr if rhr is not None and worn else '-':>4} "
+                      f"{f'{hrv:.0f}' if hrv is not None and worn else '-':>5} "
+                      f"{bb if bb is not None and worn else '-':>4}"
+                      f"{mark}")
+
+            load_avg = avg_fn(vals(1))
+            acwr_avg = avg_fn(vals(2))
+            sleep_avg = avg_fn(vals(3))
+            rhr_avg = avg_fn(vals(4))
+            hrv_avg = avg_fn(vals(5))
+
+            unworn_count = len(rows) - len(worn_rows)
+
+            print(f"\n  {'Averages:':<12} "
+                  f"{f'{load_avg:.0f}' if load_avg else '-':>6} "
+                  f"{f'{acwr_avg:.2f}' if acwr_avg else '-':>5} "
+                  f"{f'{sleep_avg:.1f}' if sleep_avg else '-':>5} "
+                  f"{'':>7} {'':>7} "
+                  f"{f'{rhr_avg:.0f}' if rhr_avg else '-':>4} "
+                  f"{f'{hrv_avg:.0f}' if hrv_avg else '-':>5}")
+
+            if unworn_count:
+                print(f"\n  * = watch not worn ({unworn_count} day{'s' if unworn_count > 1 else ''},"
+                      f" excluded from RHR/HRV/BB averages)")
 
         else:
             print(f"\n  (No trend data in database. Run store_daily_metrics.py --backfill 7 first)")

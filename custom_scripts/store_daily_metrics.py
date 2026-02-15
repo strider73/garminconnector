@@ -213,7 +213,7 @@ def millis_to_time(millis):
     if millis is None:
         return None
     from datetime import datetime
-    dt = datetime.fromtimestamp(millis / 1000)
+    dt = datetime.utcfromtimestamp(millis / 1000)
     return dt.strftime("%H:%M:%S")
 
 
