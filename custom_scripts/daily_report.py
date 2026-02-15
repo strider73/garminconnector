@@ -67,7 +67,7 @@ try:
             sleep_data = garmin.get_sleep_data(past_date)
             if sleep_data:
                 daily_sleep = sleep_data.get('dailySleepDTO', {})
-                sleep_hours = daily_sleep.get('sleepTimeSeconds', 0) / 3600
+                sleep_hours = (daily_sleep.get('sleepTimeSeconds') or 0) / 3600
                 seven_day_max['sleep_hours'] = max(seven_day_max['sleep_hours'], sleep_hours)
 
                 sleep_scores = daily_sleep.get('sleepScores', {})
@@ -120,13 +120,13 @@ try:
                 sleep_end = 'N/A'
 
             # Sleep metrics
-            sleep_seconds = daily_sleep.get('sleepTimeSeconds', 0)
+            sleep_seconds = daily_sleep.get('sleepTimeSeconds') or 0
             sleep_hours = sleep_seconds / 3600
 
-            deep_sleep_mins = daily_sleep.get('deepSleepSeconds', 0) / 60
-            light_sleep_mins = daily_sleep.get('lightSleepSeconds', 0) / 60
-            rem_sleep_mins = daily_sleep.get('remSleepSeconds', 0) / 60
-            awake_mins = daily_sleep.get('awakeSleepSeconds', 0) / 60
+            deep_sleep_mins = (daily_sleep.get('deepSleepSeconds') or 0) / 60
+            light_sleep_mins = (daily_sleep.get('lightSleepSeconds') or 0) / 60
+            rem_sleep_mins = (daily_sleep.get('remSleepSeconds') or 0) / 60
+            awake_mins = (daily_sleep.get('awakeSleepSeconds') or 0) / 60
 
             # Sleep score
             sleep_scores = daily_sleep.get('sleepScores', {})

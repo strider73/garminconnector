@@ -9,8 +9,6 @@ services:
       - DB_HOST=adventuretube.net
       - DB_PORT=5432
       - DB_NAME=adventuretube
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
 
 volumes:
   garth-tokens:
