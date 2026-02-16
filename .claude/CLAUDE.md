@@ -5,6 +5,7 @@ Data-driven training management system for Yehwan, built on Garmin Connect APIs.
 
 ## Athlete Profile
 See detailed baseline metrics and thresholds: @import .claude/yehwan-profile.md
+See training intensity patterns and court time: @import .claude/yehwan-training-intensity-pattern.md
 
 **Quick Reference:**
 - **Sport**: Tennis (UTR 8 — advanced tournament level)
@@ -12,6 +13,7 @@ See detailed baseline metrics and thresholds: @import .claude/yehwan-profile.md
 - **Resting HR**: 50 ± 3 bpm | **HRV**: 70 ± 9 ms | **VO2 Max**: 60.4 ± 2.5
 - **Sleep**: 6.5 ± 1.4h (target: 7.5h+) | **Sleep Score**: 70 ± 14
 - **Daily Steps**: 8,751 ± 4,471 | **Active Calories**: 744 ± 544
+- **Typical Training Week**: 12-15h court time (periodized: rest 17%, light 22%, moderate 24%, hard 23%, very hard 15%)
 
 ## Automated Pipelines (n8n on Raspberry Pi)
 
