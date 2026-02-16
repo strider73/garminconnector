@@ -335,11 +335,6 @@ try:
     except Exception as e:
         print(f"Could not fetch activities: {e}")
 
-    # ===== SUMMARY =====
-    print("=" * 80)
-    print("✅ Daily report complete!")
-    print("=" * 80)
-
 except Exception as e:
     print(f"\n❌ Error: {e}")
     import traceback
