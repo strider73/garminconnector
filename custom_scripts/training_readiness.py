@@ -158,6 +158,18 @@ try:
             print(f"  Bed Time:         {bed_time.strftime('%I:%M %p, %a %b %d')}")
             print(f"  Wake Time:        {wake_time.strftime('%I:%M %p, %a %b %d')}")
             print(f"  Duration:         {sleep_dur:.1f}h")
+
+            # Add sleep quality from API data
+            sleep_score = sleep_dto.get("sleepScores", {}).get("overall", {}).get("value")
+            sleep_qual = sleep_dto.get("sleepScores", {}).get("overall", {}).get("qualifierKey")
+            if sleep_score:
+                print(f"  Sleep Score:      {sleep_score}")
+            if sleep_qual:
+                print(f"  Sleep Quality:    {sleep_qual}")
+
+            feedback = sleep_dto.get("sleepScores", {}).get("feedback")
+            if feedback:
+                print(f"  Feedback:         {feedback}")
         else:
             print(f"\n  --- Sleep Timing (last night) ---")
             print(f"  No sleep data (watch not worn?)")
@@ -179,9 +191,15 @@ try:
                    sleep_hours, resting_hr, hrv_last_night,
                    body_battery_charged, sleep_score,
                    body_battery_drained, hrv_weekly_avg,
-                   sleep_start, sleep_end
+                   sleep_start, sleep_end,
+                   sleep_quality, sleep_rem_percentage, sleep_deep_percentage,
+                   sleep_feedback, sleep_insight,
+                   total_steps, total_distance_km, active_calories,
+                   moderate_intensity_mins, vigorous_intensity_mins,
+                   max_stress, training_status
             FROM garmin_daily_metrics
-            WHERE report_date >= %s AND report_date <= %s
+            WHERE user_name = 'Yehwan'
+              AND report_date >= %s AND report_date <= %s
             ORDER BY report_date
         """, ((today - timedelta(days=6)), today))
         rows = cur.fetchall()
@@ -203,6 +221,9 @@ try:
             t_rhr, t_hrv, t_bb = t[4], t[5], t[6]
             t_sleep_h, t_sleep_score = t[3], t[7]
             t_bb_drained, t_hrv_weekly = t[8], t[9]
+            t_sleep_quality = t[12]
+            t_sleep_rem_pct, t_sleep_deep_pct = t[13], t[14]
+            t_sleep_feedback, t_sleep_insight = t[15], t[16]
 
             # Get ACWR from the live API data (more current than DB)
             t_acwr = None
@@ -236,7 +257,11 @@ try:
             # --- Sleep Score (25%) ---
             if t_sleep_score is not None:
                 scores["sleep"] = min(100, t_sleep_score)
-                details["sleep"] = f"Sleep score {t_sleep_score}"
+                qual = f" ({t_sleep_quality})" if t_sleep_quality else ""
+                stages = ""
+                if t_sleep_deep_pct is not None and t_sleep_rem_pct is not None:
+                    stages = f", Deep {t_sleep_deep_pct:.0f}%, REM {t_sleep_rem_pct:.0f}%"
+                details["sleep"] = f"Sleep score {t_sleep_score}{qual}{stages}"
             elif t_sleep_h is not None:
                 if t_sleep_h >= 8:
                     scores["sleep"] = 100
@@ -348,12 +373,13 @@ try:
             print(f"\n{'=' * 55}")
             print(f"  3. 7-DAY TRENDS")
             print("=" * 55)
-            print(f"\n  {'Date':<12} {'Load':>6} {'ACWR':>5} {'Sleep':>5} {'Bed':>7} {'Wake':>7} {'RHR':>4} {'HRV':>5} {'BB+':>4}")
-            print(f"  {'-'*12} {'-'*6} {'-'*5} {'-'*5} {'-'*7} {'-'*7} {'-'*4} {'-'*5} {'-'*4}")
+            print(f"\n  {'Date':<12} {'Load':>6} {'ACWR':>5} {'Sleep':>5} {'Bed':>7} {'Wake':>7} {'RHR':>4} {'HRV':>5} {'BB+':>4} {'Steps':>6} {'ActCal':>6} {'Stress':>6}")
+            print(f"  {'-'*12} {'-'*6} {'-'*5} {'-'*5} {'-'*7} {'-'*7} {'-'*4} {'-'*5} {'-'*4} {'-'*6} {'-'*6} {'-'*6}")
 
             for row in rows:
                 rd, load, acwr, slp_h, rhr, hrv, bb = row[:7]
                 s_start, s_end = row[10], row[11]
+                steps, active_cal, max_stress = row[17], row[19], row[21]
                 worn = is_watch_worn(row)
                 bed_str = s_start.strftime('%I:%M%p').lstrip('0').lower() if s_start else '-'
                 wake_str = s_end.strftime('%I:%M%p').lstrip('0').lower() if s_end else '-'
@@ -366,7 +392,10 @@ try:
                       f"{wake_str:>7} "
                       f"{rhr if rhr is not None and worn else '-':>4} "
                       f"{f'{hrv:.0f}' if hrv is not None and worn else '-':>5} "
-                      f"{bb if bb is not None and worn else '-':>4}"
+                      f"{bb if bb is not None and worn else '-':>4} "
+                      f"{steps if steps is not None else '-':>6} "
+                      f"{active_cal if active_cal is not None else '-':>6} "
+                      f"{max_stress if max_stress is not None else '-':>6}"
                       f"{mark}")
 
             load_avg = avg_fn(vals(1))
@@ -388,6 +417,37 @@ try:
             if unworn_count:
                 print(f"\n  * = watch not worn ({unworn_count} day{'s' if unworn_count > 1 else ''},"
                       f" excluded from RHR/HRV/BB averages)")
+
+            # ==========================================================
+            # 4) YESTERDAY'S ACTIVITY SUMMARY
+            # ==========================================================
+            # Find yesterday's row
+            yesterday_row = next((r for r in rows if r[0] == yesterday), None)
+            if yesterday_row:
+                y_steps = yesterday_row[17]
+                y_distance = yesterday_row[18]
+                y_active_cal = yesterday_row[19]
+                y_mod_mins = yesterday_row[20]
+                y_vig_mins = yesterday_row[21]
+
+                print(f"\n{'=' * 55}")
+                print(f"  4. YESTERDAY'S ACTIVITY - {yesterday_str}")
+                print("=" * 55)
+
+                if y_steps is not None:
+                    print(f"\n  Total Steps:      {y_steps:,}")
+                if y_distance is not None:
+                    print(f"  Distance:         {y_distance:.1f} km")
+                if y_active_cal is not None:
+                    print(f"  Active Calories:  {y_active_cal}")
+                if y_mod_mins is not None or y_vig_mins is not None:
+                    mod = y_mod_mins if y_mod_mins is not None else 0
+                    vig = y_vig_mins if y_vig_mins is not None else 0
+                    total_intensity = mod + vig
+                    print(f"  Intensity Minutes: {total_intensity} (Moderate: {mod}, Vigorous: {vig})")
+
+                if all(v is None for v in [y_steps, y_distance, y_active_cal, y_mod_mins, y_vig_mins]):
+                    print(f"\n  No activity data available")
 
         else:
             print(f"\n  (No trend data in database. Run store_daily_metrics.py --backfill 7 first)")
