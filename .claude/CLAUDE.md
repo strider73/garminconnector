@@ -3,11 +3,7 @@
 ## Purpose
 Data-driven training management system for Yehwan, built on Garmin Connect APIs. Automated daily reports, readiness scoring, and AI coaching via n8n workflows.
 
-## Athlete Profile
-See detailed baseline metrics and thresholds: @import .claude/YEHWAN-profile.md
-See training intensity index and court time: @import .claude/YEHWAN-training-intensity-index.md
-
-**Quick Reference:**
+## Athlete Quick Reference
 - **Sport**: Tennis (UTR 8 — advanced tournament level)
 - **Age**: 20 | **Height**: 6'1" | **Weight**: 75kg
 - **Resting HR**: 50 ± 3 bpm | **HRV**: 70 ± 9 ms | **VO2 Max**: 60.4 ± 2.5
@@ -24,39 +20,16 @@ See training intensity index and court time: @import .claude/YEHWAN-training-int
 | 7:30am | Morning Readiness + AI | Readiness score → AI coaching → Email + SMS |
 
 ## AI Coach
-See full coaching logic and prompt templates: @import .claude/ai-coaching-template.md
-
 The AI coach uses Yehwan's personal data (profile, training intensity index, weekly schedule) to provide:
 1. **Day classification** — classify today's intensity using the Training Intensity Index
 2. **Day comparison** — today's metrics vs personal baselines (not generic thresholds)
 3. **Training block context** — last 7 days pattern (consecutive hard days, loading vs recovery)
 4. **Tomorrow's recommendation** — specific intensity level, court time, session count, activities
 
-## Key Metrics & Thresholds
-**Training Load:**
-- **ACWR sweet spot**: 0.8–1.3 (injury risk above 1.5, alert if >1.9)
-- **Safe training zone**: Acute load should stay within 0.8-1.3x chronic load
-
-**Recovery Markers:**
-- **RHR alert**: >57 bpm (normal: 44-56 bpm)
-- **HRV alert**: <50 or >89 ms (outside 95% confidence)
-- **Sleep target**: 7.5h minimum, 8h on pre-match nights
-- **Sleep score alert**: <41 (poor recovery)
-
-**Outlier Detection (flag for review):**
-- **RHR**: Alert if <44 or >57 bpm (outside mean ± 2σ on watch-worn days)
-- **HRV**: Alert if <51 or >88 ms (outside mean ± 2σ)
-- **Sleep Duration**: Alert if <3.7h or >9.3h (outside mean ± 2σ)
-- **Sleep Score**: Alert if <41 (poor recovery, outside mean - 2σ)
-- **Steps**: Alert if >17,692 (outside mean + 2σ)
-- **Distance**: Alert if >40km with <25 cal/km (GPS error = forgot to stop activity while driving)
-- **ACWR**: Alert if >1.4 (outside mean + 2σ), critical if >1.9 (injury risk zone)
-
-**Red Flag Actions:**
-- 3+ consecutive days: HRV <55, RHR >55, or Sleep Score <60
-- Action: Drop Wednesday to moderate intensity, skip Sunday PM court session
-
 ## References
-@import .claude/YEHWAN-weekly-schedule.md
-@import .claude/python-scripts-reference.md
-@import /Users/chrislee/.claude/shared/n8n-mcp-instructions.md
+- Athlete profile, baselines & alert thresholds: @import .claude/YEHWAN-profile.md
+- Training intensity index & load monitoring: @import .claude/YEHWAN-training-intensity-index.md
+- Weekly schedule & session times: @import .claude/YEHWAN-weekly-schedule.md
+- AI coaching logic & prompt templates: @import .claude/ai-coaching-template.md
+- Python scripts: @import .claude/python-scripts-reference.md
+- n8n instructions: @import /Users/chrislee/.claude/shared/n8n-mcp-instructions.md
