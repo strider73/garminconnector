@@ -1,4 +1,4 @@
-# Yehwan's Training Intensity Patterns
+# Yehwan's Training Intensity Index
 
 **Analysis Period:** March 6, 2025 - February 16, 2026 (340 days)
 **Data Source:** Active calories from garmin_daily_metrics (reliable indicator of training load)

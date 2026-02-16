@@ -5,7 +5,7 @@ Data-driven training management system for Yehwan, built on Garmin Connect APIs.
 
 ## Athlete Profile
 See detailed baseline metrics and thresholds: @import .claude/yehwan-profile.md
-See training intensity patterns and court time: @import .claude/yehwan-training-intensity-pattern.md
+See training intensity index and court time: @import .claude/yehwan-training-intensity-index.md
 
 **Quick Reference:**
 - **Sport**: Tennis (UTR 8 — advanced tournament level)
