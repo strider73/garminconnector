@@ -72,26 +72,62 @@
   - Range: 0-152 mins
 
 ### Training Load
-- **ACWR (Acute/Chronic Workload Ratio)**: 0.4 ± 0.5
-  - Range: 0-2.9
-  - Safe zone: 0.8-1.3
-  - Alert: >1.4 (outside mean + 2σ)
-  - Critical: >1.9 (injury risk zone)
 
-- **Acute Load**: 317 ± 463
-  - Range: 0-1,719
-  - Highly variable (reflects training periodization)
+**⚠️ DATA QUALITY ISSUE:** Chronic Load from Garmin API is stuck at 219 for 206 out of 346 days, making ACWR calculations unreliable. This causes false high-risk alerts.
 
-- **Chronic Load**: 463 ± 426
-  - Range: 100-1,707
-  - Baseline fitness level
+**Based on 243 days with valid training data:**
+
+**Training Day Distribution:**
+- **Active Training Days** (>500 cal or >30 vig mins): 170 days (70%)
+  - Acute Load: Mean 587, Median 430 (range: 4-1,719)
+  - Chronic Load: Mean 690, Median 674 (when not stuck at 219)
+  - ACWR: Mean 0.72, Median 0.70
+
+- **Light/Rest Days**: 73 days (30%)
+  - Acute Load: Mean 198, Median 71
+
+**Acute Load Zones** (based on percentiles):
+- **Recovery/Light** (<58): 25% of days (minimal training)
+- **Normal** (58-849): 50% of days (typical training)
+- **High Training** (>849): 25% of days (intense periods)
+- **Alert Threshold**: >1,296 (90th percentile - excessive load)
+
+**Chronic Load (Fitness Level):**
+- **Low Fitness** (<219): 25% of days
+- **Normal** (219-949): 50% of days
+- **High Fitness** (>949): 25% of days
+- **Note**: Chronic load represents 28-day rolling fitness baseline
+
+**ACWR (Acute/Chronic Workload Ratio):**
+- **Median ACWR**: 0.70 (typical ratio: Acute 205 / Chronic 219)
+- **Distribution**:
+  - Under-training (<0.8): 57.5% (recovery/deload weeks)
+  - Optimal (0.8-1.3): 35.5% (balanced training)
+  - Elevated Risk (1.3-1.5): 3.3%
+  - High Risk (1.5-1.9): 2.8%
+  - Critical (>1.9): 0.9%
+- **Injury risk days** (ACWR >1.3): 7.0% of training days (15 total days)
 
 ## Key Thresholds & Red Flags
 
 ### Training Load Alerts
-- **ACWR 0.8-1.3**: Safe training zone
-- **ACWR 1.5-1.9**: Elevated injury risk
+
+**IMPORTANT:** Due to Garmin API providing stale Chronic Load data (stuck at 219 for most days), ACWR alerts should be interpreted with caution. Focus on:
+1. Acute Load absolute values (>1,296 = excessive)
+2. Active calories and intensity minutes trends
+3. Multiple consecutive high-load days
+
+**ACWR Zones (when Chronic Load is valid):**
+- **ACWR 0.8-1.3**: Safe training zone (optimal progression)
+- **ACWR 1.3-1.5**: Elevated risk (monitor recovery closely)
+- **ACWR 1.5-1.9**: High injury risk (reduce training volume)
 - **ACWR >1.9**: Critical injury risk — reduce training immediately
+
+**Alternative Load Monitoring (when ACWR unreliable):**
+- **Acute Load >1,296**: Excessive training week (90th percentile)
+- **Active Calories >1,500**: High-output day (watch for multiple consecutive days)
+- **Vigorous Minutes >100**: Very high intensity (needs extra recovery)
+- **3+ consecutive days** with Acute Load >800: Overreaching risk
 
 ### Recovery Alerts
 - **RHR >57 bpm**: Elevated, may indicate fatigue or illness
