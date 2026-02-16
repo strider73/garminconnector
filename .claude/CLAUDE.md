@@ -12,29 +12,32 @@ Data-driven training management system for Yehwan, built on Garmin Connect APIs.
 - **BMI**: 22.8 (healthy/athletic)
 - **Recent Injury**: Shoulder (fully recovered as of Feb 2026)
 
-### Baseline Performance Metrics (400-day analysis: Mar 2025 - Feb 2026)
+### Baseline Performance Metrics (Cleaned Dataset: Mar 6, 2025 - Feb 16, 2026)
+Data from 340 days (120 watch-worn days for recovery metrics, 8 GPS errors filtered)
+
 **Recovery Markers:**
-- **Resting HR**: 50 ± 3 bpm (range: 45-64, baseline target: 44)
-- **HRV**: 70 ± 10 ms (range: 37-96, normal: 50-89)
-- **VO2 Max**: 60.4 ± 2.5 (range: 56-63, excellent for age)
+- **Resting HR**: 50.4 ± 3.0 bpm (range: 45-64, baseline target: 44)
+- **HRV**: 69.9 ± 9.4 ms (range: 37-96, normal: 50-89)
+- **HRV Weekly Avg**: 71.3 ± 5.0 ms (range: 59-83)
+- **VO2 Max**: 60.4 ± 2.5 (range: 56-63, excellent for age 20)
 
 **Sleep Patterns:**
-- **Duration**: 6.5 ± 1.4h (range: 2.4-9.6h, target: 7.5h+)
-- **Sleep Score**: 70 ± 14 (range: 32-94)
-- **Deep Sleep**: 19% ± 7% (range: 0-44%)
-- **REM Sleep**: 15% ± 7% (range: 0-31%)
+- **Duration**: 6.5 ± 1.4h (range: 2-10h, target: 7.5h+)
+- **Sleep Score**: 69.5 ± 14.3 (range: 32-94)
+- **Deep Sleep**: 19.3% ± 7.1% (range: 0-44%)
+- **REM Sleep**: 15.0% ± 6.5% (range: 0-31%)
 
 **Daily Activity:**
-- **Steps**: 8,750 ± 4,470 (range: 17-22,954)
-- **Distance**: 8.8 ± 6.2 km (range: 0-39km, GPS errors filtered)
+- **Steps**: 8,751 ± 4,471 (range: 17-22,954)
+- **Distance**: 8.8 ± 6.2 km (range: 0-39km, GPS errors >40km filtered)
 - **Active Calories**: 744 ± 544 (range: 0-3,081)
-- **Moderate Intensity**: 22 ± 25 mins
-- **Vigorous Intensity**: 27 ± 31 mins
+- **Moderate Intensity**: 21.9 ± 24.8 mins
+- **Vigorous Intensity**: 26.8 ± 31.0 mins
 
 **Training Load:**
-- **ACWR**: Typically 0.2-1.4 (mean: 0.4, safe zone: 0.8-1.3)
-- **Acute Load**: Highly variable (0-1,719)
-- **Chronic Load**: 219-698 typical range
+- **ACWR**: 0.4 ± 0.5 (range: 0-2.9, safe zone: 0.8-1.3)
+- **Acute Load**: 317 ± 463 (range: 0-1,719, highly variable)
+- **Chronic Load**: 463 ± 426 (range: 100-1,707)
 
 ## Automated Pipelines (n8n on Raspberry Pi)
 
@@ -65,11 +68,13 @@ The AI coach receives the full report and provides:
 - **Sleep score alert**: <41 (poor recovery)
 
 **Outlier Detection (flag for review):**
-- **RHR**: Alert if <41 or >59 bpm
-- **HRV**: Alert if <41 or >98 ms
-- **Sleep**: Alert if <2.3h or >10.7h
-- **Steps**: Alert if >22,000 (possible GPS error if distance also high)
+- **RHR**: Alert if <44 or >57 bpm (outside mean ± 2σ on watch-worn days)
+- **HRV**: Alert if <51 or >88 ms (outside mean ± 2σ)
+- **Sleep Duration**: Alert if <3.7h or >9.3h (outside mean ± 2σ)
+- **Sleep Score**: Alert if <41 (poor recovery, outside mean - 2σ)
+- **Steps**: Alert if >17,692 (outside mean + 2σ)
 - **Distance**: Alert if >40km with <25 cal/km (GPS error = forgot to stop activity while driving)
+- **ACWR**: Alert if >1.4 (outside mean + 2σ), critical if >1.9 (injury risk zone)
 
 **Red Flag Actions:**
 - 3+ consecutive days: HRV <55, RHR >55, or Sleep Score <60
