@@ -113,7 +113,11 @@ Based on 242 days with valid active calorie data:
 | Hard | 1-2 days | 2.5-3.5h | 3-5h |
 | Very Hard | 1 day | 3-5h | 3-5h |
 
-**Weekly Average:** 12-15 hours of court time
+**Weekly Average:**
+- **Court time:** 12-15 hours
+- **Gym/fitness:** ~5 hours (Thursday morning 1h with fitness trainer Royden + own gym sessions)
+- **Running:** 2-3 sessions per week, 3.6-4.2 km each (~20-25 mins)
+- **Total training volume:** ~20-23 hours per week
 
 This volume matches typical UTR 8 (advanced tournament level) training requirements.
 
