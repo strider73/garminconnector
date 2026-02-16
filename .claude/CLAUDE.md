@@ -23,14 +23,14 @@ See training intensity index and court time: @import .claude/yehwan-training-int
 | 10:00pm | Daily Report + AI | Full report → AI analysis → Email + SMS |
 | 7:30am | Morning Readiness + AI | Readiness score → AI coaching → Email + SMS |
 
-## AI Coach Prompts
-The AI coach receives the full report and provides:
-1. **Day comparison** — today's metrics vs 7-day trend (sleep, HRV, RHR, ACWR, body battery)
-2. **Training plan** — recommended hours and intensity based on readiness score:
-   - PRIME (80+): 2-3h high intensity (match play, hard drills)
-   - MODERATE (60-79): 1.5-2h moderate (technical work, light hitting)
-   - LOW (40-59): 1h light only (stretching, easy rallying)
-   - POOR (<40): Rest day or 30min light movement
+## AI Coach
+See full coaching logic and prompt templates: @import .claude/ai-coaching-template.md
+
+The AI coach uses Yehwan's personal data (profile, training intensity index, weekly schedule) to provide:
+1. **Day classification** — classify today's intensity using the Training Intensity Index
+2. **Day comparison** — today's metrics vs personal baselines (not generic thresholds)
+3. **Training block context** — last 7 days pattern (consecutive hard days, loading vs recovery)
+4. **Tomorrow's recommendation** — specific intensity level, court time, session count, activities
 
 ## Key Metrics & Thresholds
 **Training Load:**
