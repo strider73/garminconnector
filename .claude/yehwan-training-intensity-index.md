@@ -115,9 +115,8 @@ Based on 242 days with valid active calorie data:
 
 **Weekly Average:**
 - **Court time:** 12-15 hours
-- **Gym/fitness:** ~5 hours (Thursday morning 1h with fitness trainer Royden + own gym sessions)
-- **Running:** 2-3 sessions per week, 3.6-4.2 km each (~20-25 mins)
-- **Total training volume:** ~20-23 hours per week
+- **Gym/fitness + running:** ~5 hours (Thursday morning 1h with fitness trainer Royden + own gym sessions + 2-3 jogs of 3.6-4.2km each)
+- **Total training volume:** ~17-20 hours per week
 
 This volume matches typical UTR 8 (advanced tournament level) training requirements.
 
