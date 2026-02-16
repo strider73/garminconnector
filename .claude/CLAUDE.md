@@ -18,10 +18,10 @@ See detailed baseline metrics and thresholds: @import .claude/yehwan-profile.md
 | Time | Workflow | What it does |
 |------|----------|--------------|
 | 9:30pm | Store Daily Metrics | Garmin → PostgreSQL (garmin_daily_metrics) |
-| 10:00pm | Daily Report + AI | Full report → Gemini analysis → Email + SMS |
-| 7:30am | Morning Readiness + AI | Readiness score → Gemini coaching → Email + SMS |
+| 10:00pm | Daily Report + AI | Full report → AI analysis → Email + SMS |
+| 7:30am | Morning Readiness + AI | Readiness score → AI coaching → Email + SMS |
 
-## AI Coach Prompts (Gemini 2.5 Flash)
+## AI Coach Prompts
 The AI coach receives the full report and provides:
 1. **Day comparison** — today's metrics vs 7-day trend (sleep, HRV, RHR, ACWR, body battery)
 2. **Training plan** — recommended hours and intensity based on readiness score:
