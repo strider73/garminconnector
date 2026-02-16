@@ -120,6 +120,20 @@ Based on 242 days with valid active calorie data:
 
 This volume matches typical UTR 8 (advanced tournament level) training requirements.
 
+## Weekly Intensity Pattern
+
+```
+Mon   ████████░░  HIGH         (3.25h court)
+Tue   ██████████  VERY HIGH    (4.5h court + 1h gym)
+Wed   ████████░░  HIGH         (3.5h court)
+Thu   ██████░░░░  MODERATE     (1h fitness + 2h court + light coaching)
+Fri   ████░░░░░░  LOW-MOD      (1h court + 2h fun squad)
+Sat   █████████░  VERY HIGH    (competition @ 1pm)
+Sun   ███░░░░░░░  LOW          (jog + optional court)
+```
+
+**Natural taper:** Mon-Wed hard → Thu-Fri easing off → Sat competition
+
 ## Training Philosophy
 
 Yehwan's data reveals a **periodized, balanced approach:**
@@ -130,6 +144,20 @@ Yehwan's data reveals a **periodized, balanced approach:**
 4. **Tournament Peaks:** Very hard days (>1500 cal) typically tournament/competition days
 
 This approach prevents burnout and allows for proper recovery while maintaining high performance.
+
+## Intensity Management
+
+- Tuesday is the biggest load day — monitor this day's Garmin data closely
+- Friday squad session is fun/social but watch HR — competitive players can go hard unconsciously
+- Sleep is the single biggest free performance gain available
+
+### Sunday Tempo Run Protocol
+- **Purpose:** Fill aerobic high zone shortage (Garmin feedback: AEROBIC_HIGH_SHORTAGE)
+- **Post-match version:** 20 min, 3.5–4.0 km
+- **No-match version:** 25–30 min, 4.5–5.5 km
+- **Pace:** 5:20–5:40/km
+- **HR ceiling:** 165 bpm — slow down if exceeded
+- **Progression:** Start at 20 min for weeks 1–2, build to 25 min weeks 3–4, then 30 min weeks 5+
 
 ## Calorie Burn Reference
 
@@ -164,3 +192,11 @@ For Yehwan (75kg, 20 years old, competitive level):
 - >1500 cal for 3+ consecutive days
 - Acute load >1300 (90th percentile - excessive)
 - <300 cal for 7+ consecutive days (detraining risk)
+- HRV below 55 for 3+ consecutive days
+- RHR above 55 for 3+ consecutive days
+- If triggered: drop Wednesday to moderate intensity, skip Sunday PM court session
+
+## Progression Plan
+- **Weeks 1–2:** Establish Sunday jog habit at 20 min. Let chronic load build naturally.
+- **Weeks 3–4:** Extend Sunday jog to 25–30 min. ACWR should normalize toward 1.0–1.2.
+- **Weeks 5–6:** Garmin should show PRODUCTIVE. Aerobic high numbers climbing. Reassess.
