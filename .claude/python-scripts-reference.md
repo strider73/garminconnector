@@ -31,7 +31,8 @@
 | `trainer_report.py` | Comprehensive coach report with weekly analysis |
 | `weekly_report.py` | 7-day summary |
 | `weekly_health_report.py` | Health-focused weekly metrics |
-| `monthly_report.py` | 30-day trends |
+| `monthly_report.py` | 30-day trends (API-based, slower) |
+| `monthly_workload_report.py` | **NEW** Monthly workload analysis (DB-based, fast) — Training load, ACWR, readiness, sleep, HRV, weekly breakdown |
 | `generate_full_report.py` | Combined full report |
 | `heart_rate_analysis.py` | HR zone analysis |
 | `intensity_analysis.py` | Training intensity breakdown |
