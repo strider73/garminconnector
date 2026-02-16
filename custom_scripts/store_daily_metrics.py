@@ -32,110 +32,109 @@ TRAINING_STATUS_MAP = {
 
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS garmin_daily_metrics (
-    report_date         DATE PRIMARY KEY,
-    -- Training Readiness
-    readiness_score     SMALLINT,
-    readiness_level     VARCHAR(30),
-    readiness_sleep_score SMALLINT,
-    readiness_sleep_history SMALLINT,
-    readiness_hrv_status VARCHAR(30),
-    readiness_stress_history SMALLINT,
-    readiness_acute_load REAL,
-    readiness_recovery_mins INTEGER,
-    -- Training Status
-    vo2_max             REAL,
-    vo2_max_date        DATE,
-    training_status     VARCHAR(30),
-    training_feedback   VARCHAR(50),
-    status_since        DATE,
-    -- Training Load
-    acute_load          REAL,
-    chronic_load        REAL,
-    acwr_ratio          REAL,
-    acwr_status         VARCHAR(20),
-    acwr_percent        SMALLINT,
-    -- Monthly Load Balance
-    aerobic_low         REAL,
+    -- Identification
+    user_name VARCHAR(50) NOT NULL DEFAULT 'Yehwan',
+    report_date DATE NOT NULL,
+    -- Training Load & Status
+    training_status VARCHAR(50),
+    training_feedback VARCHAR(100),
+    status_since DATE,
+    acute_load REAL,
+    chronic_load REAL,
+    acwr_ratio REAL,
+    acwr_status VARCHAR(20),
+    acwr_percent SMALLINT,
+    vo2_max REAL,
+    vo2_max_date DATE,
+    balance_feedback VARCHAR(100),
+    -- Training Intensity Zones
+    aerobic_low REAL,
     aerobic_low_target_min REAL,
     aerobic_low_target_max REAL,
-    aerobic_high        REAL,
+    aerobic_high REAL,
     aerobic_high_target_min REAL,
     aerobic_high_target_max REAL,
-    anaerobic           REAL,
+    anaerobic REAL,
     anaerobic_target_min REAL,
     anaerobic_target_max REAL,
-    balance_feedback    VARCHAR(50),
     -- HRV
-    hrv_last_night      REAL,
-    hrv_weekly_avg      REAL,
-    hrv_status          VARCHAR(30),
-    -- Sleep
-    sleep_hours         REAL,
-    sleep_score         SMALLINT,
-    deep_sleep_mins     REAL,
-    light_sleep_mins    REAL,
-    rem_sleep_mins      REAL,
-    awake_mins          REAL,
-    sleep_start         TIME,
-    sleep_end           TIME,
+    hrv_last_night REAL,
+    hrv_weekly_avg REAL,
+    hrv_status VARCHAR(20),
+    -- Sleep (enhanced)
+    sleep_hours REAL,
+    sleep_score SMALLINT,
+    sleep_quality VARCHAR(20),
+    sleep_rem_percentage SMALLINT,
+    sleep_light_percentage SMALLINT,
+    sleep_deep_percentage SMALLINT,
+    sleep_feedback VARCHAR(100),
+    sleep_insight VARCHAR(100),
+    deep_sleep_mins REAL,
+    light_sleep_mins REAL,
+    rem_sleep_mins REAL,
+    awake_mins REAL,
+    sleep_start TIME,
+    sleep_end TIME,
     -- Heart Rate
-    resting_hr          SMALLINT,
-    max_hr              SMALLINT,
-    min_hr              SMALLINT,
-    -- Body Battery
+    resting_hr SMALLINT,
+    max_hr SMALLINT,
+    min_hr SMALLINT,
+    -- Body Battery & Stress
     body_battery_charged SMALLINT,
     body_battery_drained SMALLINT,
-    -- Stress
-    avg_stress          SMALLINT,
-    max_stress          SMALLINT,
+    max_stress SMALLINT,
+    -- Daily Activity
+    total_steps INTEGER,
+    total_distance_km REAL,
+    total_calories INTEGER,
+    active_calories INTEGER,
+    moderate_intensity_mins INTEGER,
+    vigorous_intensity_mins INTEGER,
+    floors_climbed INTEGER,
     -- Metadata
-    created_at          TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT garmin_daily_metrics_pkey PRIMARY KEY (user_name, report_date)
 );
 """
 
 UPSERT_SQL = """
 INSERT INTO garmin_daily_metrics (
-    report_date,
-    readiness_score, readiness_level, readiness_sleep_score, readiness_sleep_history,
-    readiness_hrv_status, readiness_stress_history, readiness_acute_load, readiness_recovery_mins,
-    vo2_max, vo2_max_date, training_status, training_feedback, status_since,
+    user_name, report_date,
+    training_status, training_feedback, status_since,
     acute_load, chronic_load, acwr_ratio, acwr_status, acwr_percent,
+    vo2_max, vo2_max_date, balance_feedback,
     aerobic_low, aerobic_low_target_min, aerobic_low_target_max,
     aerobic_high, aerobic_high_target_min, aerobic_high_target_max,
-    anaerobic, anaerobic_target_min, anaerobic_target_max, balance_feedback,
+    anaerobic, anaerobic_target_min, anaerobic_target_max,
     hrv_last_night, hrv_weekly_avg, hrv_status,
-    sleep_hours, sleep_score, deep_sleep_mins, light_sleep_mins,
-    rem_sleep_mins, awake_mins, sleep_start, sleep_end,
+    sleep_hours, sleep_score, sleep_quality, sleep_rem_percentage,
+    sleep_light_percentage, sleep_deep_percentage, sleep_feedback, sleep_insight,
+    deep_sleep_mins, light_sleep_mins, rem_sleep_mins, awake_mins,
+    sleep_start, sleep_end,
     resting_hr, max_hr, min_hr,
-    body_battery_charged, body_battery_drained,
-    avg_stress, max_stress
+    body_battery_charged, body_battery_drained, max_stress,
+    total_steps, total_distance_km, total_calories, active_calories,
+    moderate_intensity_mins, vigorous_intensity_mins, floors_climbed
 ) VALUES (
-    %(report_date)s,
-    %(readiness_score)s, %(readiness_level)s, %(readiness_sleep_score)s, %(readiness_sleep_history)s,
-    %(readiness_hrv_status)s, %(readiness_stress_history)s, %(readiness_acute_load)s, %(readiness_recovery_mins)s,
-    %(vo2_max)s, %(vo2_max_date)s, %(training_status)s, %(training_feedback)s, %(status_since)s,
+    %(user_name)s, %(report_date)s,
+    %(training_status)s, %(training_feedback)s, %(status_since)s,
     %(acute_load)s, %(chronic_load)s, %(acwr_ratio)s, %(acwr_status)s, %(acwr_percent)s,
+    %(vo2_max)s, %(vo2_max_date)s, %(balance_feedback)s,
     %(aerobic_low)s, %(aerobic_low_target_min)s, %(aerobic_low_target_max)s,
     %(aerobic_high)s, %(aerobic_high_target_min)s, %(aerobic_high_target_max)s,
-    %(anaerobic)s, %(anaerobic_target_min)s, %(anaerobic_target_max)s, %(balance_feedback)s,
+    %(anaerobic)s, %(anaerobic_target_min)s, %(anaerobic_target_max)s,
     %(hrv_last_night)s, %(hrv_weekly_avg)s, %(hrv_status)s,
-    %(sleep_hours)s, %(sleep_score)s, %(deep_sleep_mins)s, %(light_sleep_mins)s,
-    %(rem_sleep_mins)s, %(awake_mins)s, %(sleep_start)s, %(sleep_end)s,
+    %(sleep_hours)s, %(sleep_score)s, %(sleep_quality)s, %(sleep_rem_percentage)s,
+    %(sleep_light_percentage)s, %(sleep_deep_percentage)s, %(sleep_feedback)s, %(sleep_insight)s,
+    %(deep_sleep_mins)s, %(light_sleep_mins)s, %(rem_sleep_mins)s, %(awake_mins)s,
+    %(sleep_start)s, %(sleep_end)s,
     %(resting_hr)s, %(max_hr)s, %(min_hr)s,
-    %(body_battery_charged)s, %(body_battery_drained)s,
-    %(avg_stress)s, %(max_stress)s
+    %(body_battery_charged)s, %(body_battery_drained)s, %(max_stress)s,
+    %(total_steps)s, %(total_distance_km)s, %(total_calories)s, %(active_calories)s,
+    %(moderate_intensity_mins)s, %(vigorous_intensity_mins)s, %(floors_climbed)s
 )
-ON CONFLICT (report_date) DO UPDATE SET
-    readiness_score = EXCLUDED.readiness_score,
-    readiness_level = EXCLUDED.readiness_level,
-    readiness_sleep_score = EXCLUDED.readiness_sleep_score,
-    readiness_sleep_history = EXCLUDED.readiness_sleep_history,
-    readiness_hrv_status = EXCLUDED.readiness_hrv_status,
-    readiness_stress_history = EXCLUDED.readiness_stress_history,
-    readiness_acute_load = EXCLUDED.readiness_acute_load,
-    readiness_recovery_mins = EXCLUDED.readiness_recovery_mins,
-    vo2_max = EXCLUDED.vo2_max,
-    vo2_max_date = EXCLUDED.vo2_max_date,
+ON CONFLICT (user_name, report_date) DO UPDATE SET
     training_status = EXCLUDED.training_status,
     training_feedback = EXCLUDED.training_feedback,
     status_since = EXCLUDED.status_since,
@@ -144,6 +143,9 @@ ON CONFLICT (report_date) DO UPDATE SET
     acwr_ratio = EXCLUDED.acwr_ratio,
     acwr_status = EXCLUDED.acwr_status,
     acwr_percent = EXCLUDED.acwr_percent,
+    vo2_max = EXCLUDED.vo2_max,
+    vo2_max_date = EXCLUDED.vo2_max_date,
+    balance_feedback = EXCLUDED.balance_feedback,
     aerobic_low = EXCLUDED.aerobic_low,
     aerobic_low_target_min = EXCLUDED.aerobic_low_target_min,
     aerobic_low_target_max = EXCLUDED.aerobic_low_target_max,
@@ -153,12 +155,17 @@ ON CONFLICT (report_date) DO UPDATE SET
     anaerobic = EXCLUDED.anaerobic,
     anaerobic_target_min = EXCLUDED.anaerobic_target_min,
     anaerobic_target_max = EXCLUDED.anaerobic_target_max,
-    balance_feedback = EXCLUDED.balance_feedback,
     hrv_last_night = EXCLUDED.hrv_last_night,
     hrv_weekly_avg = EXCLUDED.hrv_weekly_avg,
     hrv_status = EXCLUDED.hrv_status,
     sleep_hours = EXCLUDED.sleep_hours,
     sleep_score = EXCLUDED.sleep_score,
+    sleep_quality = EXCLUDED.sleep_quality,
+    sleep_rem_percentage = EXCLUDED.sleep_rem_percentage,
+    sleep_light_percentage = EXCLUDED.sleep_light_percentage,
+    sleep_deep_percentage = EXCLUDED.sleep_deep_percentage,
+    sleep_feedback = EXCLUDED.sleep_feedback,
+    sleep_insight = EXCLUDED.sleep_insight,
     deep_sleep_mins = EXCLUDED.deep_sleep_mins,
     light_sleep_mins = EXCLUDED.light_sleep_mins,
     rem_sleep_mins = EXCLUDED.rem_sleep_mins,
@@ -170,8 +177,14 @@ ON CONFLICT (report_date) DO UPDATE SET
     min_hr = EXCLUDED.min_hr,
     body_battery_charged = EXCLUDED.body_battery_charged,
     body_battery_drained = EXCLUDED.body_battery_drained,
-    avg_stress = EXCLUDED.avg_stress,
-    max_stress = EXCLUDED.max_stress;
+    max_stress = EXCLUDED.max_stress,
+    total_steps = EXCLUDED.total_steps,
+    total_distance_km = EXCLUDED.total_distance_km,
+    total_calories = EXCLUDED.total_calories,
+    active_calories = EXCLUDED.active_calories,
+    moderate_intensity_mins = EXCLUDED.moderate_intensity_mins,
+    vigorous_intensity_mins = EXCLUDED.vigorous_intensity_mins,
+    floors_climbed = EXCLUDED.floors_climbed;
 """
 
 
@@ -220,29 +233,10 @@ def millis_to_time(millis):
 def fetch_metrics(garmin, cdate):
     """Fetch all metrics for a single date and return a dict for DB insertion."""
     date_str = cdate.isoformat()
-    row = {"report_date": cdate}
-
-    # --- Training Readiness ---
-    try:
-        readiness = garmin.get_training_readiness(date_str)
-    except Exception:
-        readiness = None
-
-    if readiness:
-        row["readiness_score"] = readiness.get("score")
-        row["readiness_level"] = readiness.get("levelKey", readiness.get("level"))
-        row["readiness_sleep_score"] = readiness.get("sleepScore")
-        row["readiness_sleep_history"] = readiness.get("sleepHistoryScore")
-        row["readiness_hrv_status"] = readiness.get("hrvStatus")
-        row["readiness_stress_history"] = readiness.get("stressHistoryScore")
-        row["readiness_acute_load"] = readiness.get("acuteTrainingLoad")
-        row["readiness_recovery_mins"] = readiness.get("recoveryTimeInMinutes")
-    else:
-        for k in ["readiness_score", "readiness_level", "readiness_sleep_score",
-                   "readiness_sleep_history", "readiness_hrv_status",
-                   "readiness_stress_history", "readiness_acute_load",
-                   "readiness_recovery_mins"]:
-            row[k] = None
+    row = {
+        "user_name": "Yehwan",
+        "report_date": cdate
+    }
 
     # --- Training Status ---
     try:
@@ -336,17 +330,39 @@ def fetch_metrics(garmin, cdate):
 
     if sleep:
         daily_summary = sleep.get("dailySleepDTO", {})
+        sleep_scores = daily_summary.get("sleepScores", {})
+
+        # Basic sleep data
         row["sleep_hours"] = round(daily_summary.get("sleepTimeSeconds", 0) / 3600, 2) if daily_summary.get("sleepTimeSeconds") else None
-        row["sleep_score"] = sleep.get("sleepScores", {}).get("overall", {}).get("value") if sleep.get("sleepScores") else None
+
+        # Sleep score and quality (FIXED PATH - inside dailySleepDTO)
+        overall_score = sleep_scores.get("overall", {})
+        row["sleep_score"] = overall_score.get("value") if overall_score else None
+        row["sleep_quality"] = overall_score.get("qualifierKey") if overall_score else None
+
+        # Sleep stage percentages
+        row["sleep_rem_percentage"] = sleep_scores.get("remPercentage", {}).get("value")
+        row["sleep_light_percentage"] = sleep_scores.get("lightPercentage", {}).get("value")
+        row["sleep_deep_percentage"] = sleep_scores.get("deepPercentage", {}).get("value")
+
+        # Sleep feedback and insights
+        row["sleep_feedback"] = daily_summary.get("sleepScoreFeedback")
+        row["sleep_insight"] = daily_summary.get("sleepScoreInsight")
+
+        # Sleep stage durations
         row["deep_sleep_mins"] = round(daily_summary.get("deepSleepSeconds", 0) / 60, 1) if daily_summary.get("deepSleepSeconds") else None
         row["light_sleep_mins"] = round(daily_summary.get("lightSleepSeconds", 0) / 60, 1) if daily_summary.get("lightSleepSeconds") else None
         row["rem_sleep_mins"] = round(daily_summary.get("remSleepSeconds", 0) / 60, 1) if daily_summary.get("remSleepSeconds") else None
         row["awake_mins"] = round(daily_summary.get("awakeSleepSeconds", 0) / 60, 1) if daily_summary.get("awakeSleepSeconds") else None
+
+        # Sleep times
         row["sleep_start"] = millis_to_time(daily_summary.get("sleepStartTimestampLocal"))
         row["sleep_end"] = millis_to_time(daily_summary.get("sleepEndTimestampLocal"))
     else:
-        for k in ["sleep_hours", "sleep_score", "deep_sleep_mins", "light_sleep_mins",
-                   "rem_sleep_mins", "awake_mins", "sleep_start", "sleep_end"]:
+        for k in ["sleep_hours", "sleep_score", "sleep_quality", "sleep_rem_percentage",
+                   "sleep_light_percentage", "sleep_deep_percentage", "sleep_feedback", "sleep_insight",
+                   "deep_sleep_mins", "light_sleep_mins", "rem_sleep_mins", "awake_mins",
+                   "sleep_start", "sleep_end"]:
             row[k] = None
 
     # --- Heart Rate ---
@@ -385,11 +401,28 @@ def fetch_metrics(garmin, cdate):
         stress = None
 
     if stress:
-        row["avg_stress"] = stress.get("overallStressLevel")
         row["max_stress"] = stress.get("maxStressLevel")
     else:
-        row["avg_stress"] = None
         row["max_stress"] = None
+
+    # --- Daily Activity ---
+    try:
+        stats = garmin.get_stats(date_str)
+    except Exception:
+        stats = None
+
+    if stats:
+        row["total_steps"] = stats.get("totalSteps")
+        row["total_distance_km"] = round(stats.get("totalDistanceMeters", 0) / 1000, 2) if stats.get("totalDistanceMeters") else None
+        row["total_calories"] = stats.get("totalKilocalories")
+        row["active_calories"] = stats.get("activeKilocalories")
+        row["moderate_intensity_mins"] = stats.get("moderateIntensityMinutes")
+        row["vigorous_intensity_mins"] = stats.get("vigorousIntensityMinutes")
+        row["floors_climbed"] = stats.get("floorsAscended")
+    else:
+        for k in ["total_steps", "total_distance_km", "total_calories", "active_calories",
+                   "moderate_intensity_mins", "vigorous_intensity_mins", "floors_climbed"]:
+            row[k] = None
 
     return row
 
@@ -426,7 +459,7 @@ def main():
             try:
                 row = fetch_metrics(garmin, d)
                 store_row(conn, row)
-                print(f"  [{i+1}/{len(dates)}] {d} - stored (readiness={row.get('readiness_score')})")
+                print(f"  [{i+1}/{len(dates)}] {d} - stored (steps={row.get('total_steps')}, sleep_score={row.get('sleep_score')})")
             except Exception as e:
                 print(f"  [{i+1}/{len(dates)}] {d} - ERROR: {e}")
             if i < len(dates) - 1:
@@ -435,8 +468,9 @@ def main():
         print(f"\nFetching metrics for {today}...")
         row = fetch_metrics(garmin, today)
         store_row(conn, row)
-        print(f"Stored: {today} (readiness={row.get('readiness_score')}, "
-              f"acute_load={row.get('acute_load')}, sleep={row.get('sleep_hours')}h)")
+        print(f"Stored: {today} (steps={row.get('total_steps')}, "
+              f"acute_load={row.get('acute_load')}, sleep={row.get('sleep_hours')}h, "
+              f"sleep_score={row.get('sleep_score')})")
 
     conn.close()
     print("\nDone.")
