@@ -1,19 +1,19 @@
 # YEHWAN — Training Intensity Index
 
-**Analysis Period:** March 6, 2025 - February 16, 2026 (348 days)
+**Analysis Period:** {first_date_long} - {last_date_long} ({total_days} days)
 **Data Source:** Active calories from garmin_daily_metrics (reliable indicator of training load)
 
 ## Training Intensity Classification
 
-Based on 338 days with valid active calorie data:
+Based on {activity_days} days with valid active calorie data:
 
 | Intensity Level | Active Calories | Frequency | % of Time | Typical Acute Load |
 |-----------------|-----------------|-----------|-----------|-------------------|
-| 🛌 **Rest/Recovery** | <300 | 74 days | 21.9% | ~122 (range: 0-986) |
-| 🚶 **Light Training** | 300-600 | 79 days | 23.4% | ~155 (range: 0-1541) |
-| 🏃 **Moderate Training** | 600-1000 | 80 days | 23.7% | ~361 (range: 0-1508) |
-| 💪 **Hard Training** | 1000-1500 | 65 days | 19.2% | ~472 (range: 0-1611) |
-| 🔥 **Very Hard Training** | >1500 | 40 days | 11.8% | ~837 (range: 0-1719) |
+| 🛌 **Rest/Recovery** | <300 | {rest_days} days | {rest_pct}% | ~{rest_acute} (range: {rest_acute_min}-{rest_acute_max}) |
+| 🚶 **Light Training** | 300-600 | {light_days} days | {light_pct}% | ~{light_acute} (range: {light_acute_min}-{light_acute_max}) |
+| 🏃 **Moderate Training** | 600-1000 | {mod_days} days | {mod_pct}% | ~{mod_acute} (range: {mod_acute_min}-{mod_acute_max}) |
+| 💪 **Hard Training** | 1000-1500 | {hard_days} days | {hard_pct}% | ~{hard_acute} (range: {hard_acute_min}-{hard_acute_max}) |
+| 🔥 **Very Hard Training** | >1500 | {vhard_days} days | {vhard_pct}% | ~{vhard_acute} (range: {vhard_acute_min}-{vhard_acute_max}) |
 
 ## Estimated Court Time by Intensity Level
 
@@ -21,35 +21,35 @@ Based on 338 days with valid active calorie data:
 **Court Time:** 0 hours
 - Morning: Off | Afternoon: Off
 - Activities: Light stretching (15-30 mins), recovery walk, foam rolling
-- Frequency: 1 day per week (22%)
+- Frequency: 1 day per week ({rest_pct_round}%)
 
 ### 🚶 Light Training (300-600 active calories)
 **Court Time:** 0.5-1.5 hours
 - Morning: 0-1h (optional) | Afternoon: 0.5-1.5h
 - Activities: Easy groundstroke drills, serve practice, footwork, light hitting
 - Single session day
-- Frequency: 1-2 days per week (23%)
+- Frequency: 1-2 days per week ({light_pct_round}%)
 
 ### 🏃 Moderate Training (600-1000 active calories)
 **Court Time:** 1.5-2.5 hours
 - Morning: 1-1.5h | Afternoon: 1-1.5h
 - Activities: Technical drills + serve practice (~500 cal/hr), practice sets (~600 cal/hr)
 - Two sessions: 1-1.5h each
-- Frequency: 2 days per week (24%)
+- Frequency: 2 days per week ({mod_pct_round}%)
 
 ### 💪 Hard Training (1000-1500 active calories)
 **Court Time:** 2.5-3.5 hours
 - Morning: 1.5-2h | Afternoon: 1.5-2h
 - Activities: Hard hitting + match play (~650 cal/hr), tournament simulation
 - Two sessions: 1.5-2h each. May include fitness training.
-- Frequency: 1-2 days per week (19%)
+- Frequency: 1-2 days per week ({hard_pct_round}%)
 
 ### 🔥 Very Hard Training (>1500 active calories)
 **Court Time:** 3-5 hours
 - Morning: 2-2.5h | Afternoon: 1.5-2.5h
 - Activities: Full matches (~700 cal/hr), multiple sessions, tournament days
 - 2-3 sessions per day
-- Frequency: 1 day per week (12%)
+- Frequency: 1 day per week ({vhard_pct_round}%)
 
 ## Weekly Volume
 
@@ -77,8 +77,8 @@ For exact session times: @import .claude/YEHWAN-weekly-schedule.md
 ## Training Philosophy
 
 Data reveals a **periodized, balanced approach:**
-1. **Recovery Built In:** 45% of days are rest/light (<600 cal)
-2. **High Intensity When Needed:** 31% of days are hard/very hard (>1000 cal)
+1. **Recovery Built In:** {rest_light_pct}% of days are rest/light (<600 cal)
+2. **High Intensity When Needed:** {hard_vhard_pct}% of days are hard/very hard (>1000 cal)
 3. **Not Constant Grinding:** Varies intensity throughout the week
 4. **Tournament Peaks:** Very hard days (>1500 cal) = competition/tournament days
 
@@ -100,7 +100,7 @@ Varies by: rally intensity, court coverage, rest intervals, environmental condit
 ### Load Thresholds
 | Threshold | Value | Action |
 |-----------|-------|--------|
-| Excessive acute load | >1,555 | 90th percentile — reduce volume |
+| Excessive acute load | >{p90_cal} | 90th percentile — reduce volume |
 | High-output day | >1,500 active cal | Watch for multiple consecutive days |
 | Very high intensity | >100 vigorous mins | Needs extra recovery |
 | Overreaching risk | 3+ days with Acute >800 | Plan light/rest day |
