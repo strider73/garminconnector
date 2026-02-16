@@ -55,13 +55,28 @@ try:
             # Get activity stats
             stats = garmin.get_stats(past_date)
             if stats:
-                seven_day_max['steps'] = max(seven_day_max['steps'], stats.get('totalSteps', 0))
-                seven_day_max['distance'] = max(seven_day_max['distance'], stats.get('totalDistanceMeters', 0) / 1000)
-                seven_day_max['active_calories'] = max(seven_day_max['active_calories'], stats.get('activeKilocalories', 0))
+                steps = stats.get('totalSteps', 0)
+                distance_km = stats.get('totalDistanceMeters', 0) / 1000
+                active_cal = stats.get('activeKilocalories', 0)
 
-                moderate = stats.get('moderateIntensityMinutes', 0)
-                vigorous = stats.get('vigorousIntensityMinutes', 0)
-                seven_day_max['intensity_mins'] = max(seven_day_max['intensity_mins'], moderate + (vigorous * 2))
+                # GPS error detection: skip days with unrealistic distance (forgot to stop activity)
+                # For tennis player (no cycling): >20km with <30 cal/km or >40km with <35 cal/km
+                is_gps_error = False
+                if distance_km > 20 and active_cal > 0:
+                    cal_per_km = active_cal / distance_km
+                    if distance_km > 40 and cal_per_km < 35:
+                        is_gps_error = True
+                    elif distance_km > 20 and cal_per_km < 30:
+                        is_gps_error = True
+
+                if not is_gps_error:
+                    seven_day_max['steps'] = max(seven_day_max['steps'], steps)
+                    seven_day_max['distance'] = max(seven_day_max['distance'], distance_km)
+                    seven_day_max['active_calories'] = max(seven_day_max['active_calories'], active_cal)
+
+                    moderate = stats.get('moderateIntensityMinutes', 0)
+                    vigorous = stats.get('vigorousIntensityMinutes', 0)
+                    seven_day_max['intensity_mins'] = max(seven_day_max['intensity_mins'], moderate + (vigorous * 2))
 
             # Get sleep data
             sleep_data = garmin.get_sleep_data(past_date)
