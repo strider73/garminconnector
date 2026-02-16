@@ -4,40 +4,14 @@
 Data-driven training management system for Yehwan, built on Garmin Connect APIs. Automated daily reports, readiness scoring, and AI coaching via n8n workflows.
 
 ## Athlete Profile
-- **Name**: Yehwan
-- **Age**: 20
-- **Height**: 6'1" (185 cm)
-- **Weight**: 75 kg (165 lbs)
+See detailed baseline metrics and thresholds: @import .claude/yehwan-profile.md
+
+**Quick Reference:**
 - **Sport**: Tennis (UTR 8 — advanced tournament level)
-- **BMI**: 22.8 (healthy/athletic)
-- **Recent Injury**: Shoulder (fully recovered as of Feb 2026)
-
-### Baseline Performance Metrics (Cleaned Dataset: Mar 6, 2025 - Feb 16, 2026)
-Data from 340 days (120 watch-worn days for recovery metrics, 8 GPS errors filtered)
-
-**Recovery Markers:**
-- **Resting HR**: 50.4 ± 3.0 bpm (range: 45-64, baseline target: 44)
-- **HRV**: 69.9 ± 9.4 ms (range: 37-96, normal: 50-89)
-- **HRV Weekly Avg**: 71.3 ± 5.0 ms (range: 59-83)
-- **VO2 Max**: 60.4 ± 2.5 (range: 56-63, excellent for age 20)
-
-**Sleep Patterns:**
-- **Duration**: 6.5 ± 1.4h (range: 2-10h, target: 7.5h+)
-- **Sleep Score**: 69.5 ± 14.3 (range: 32-94)
-- **Deep Sleep**: 19.3% ± 7.1% (range: 0-44%)
-- **REM Sleep**: 15.0% ± 6.5% (range: 0-31%)
-
-**Daily Activity:**
-- **Steps**: 8,751 ± 4,471 (range: 17-22,954)
-- **Distance**: 8.8 ± 6.2 km (range: 0-39km, GPS errors >40km filtered)
-- **Active Calories**: 744 ± 544 (range: 0-3,081)
-- **Moderate Intensity**: 21.9 ± 24.8 mins
-- **Vigorous Intensity**: 26.8 ± 31.0 mins
-
-**Training Load:**
-- **ACWR**: 0.4 ± 0.5 (range: 0-2.9, safe zone: 0.8-1.3)
-- **Acute Load**: 317 ± 463 (range: 0-1,719, highly variable)
-- **Chronic Load**: 463 ± 426 (range: 100-1,707)
+- **Age**: 20 | **Height**: 6'1" | **Weight**: 75kg
+- **Resting HR**: 50 ± 3 bpm | **HRV**: 70 ± 9 ms | **VO2 Max**: 60.4 ± 2.5
+- **Sleep**: 6.5 ± 1.4h (target: 7.5h+) | **Sleep Score**: 70 ± 14
+- **Daily Steps**: 8,751 ± 4,471 | **Active Calories**: 744 ± 544
 
 ## Automated Pipelines (n8n on Raspberry Pi)
 
