@@ -4,8 +4,8 @@
 Data-driven training management system for Yehwan, built on Garmin Connect APIs. Automated daily reports, readiness scoring, and AI coaching via n8n workflows.
 
 ## Athlete Profile
-See detailed baseline metrics and thresholds: @import .claude/yehwan-profile.md
-See training intensity index and court time: @import .claude/yehwan-training-intensity-index.md
+See detailed baseline metrics and thresholds: @import .claude/YEHWAN-profile.md
+See training intensity index and court time: @import .claude/YEHWAN-training-intensity-index.md
 
 **Quick Reference:**
 - **Sport**: Tennis (UTR 8 — advanced tournament level)
@@ -57,6 +57,6 @@ The AI coach uses Yehwan's personal data (profile, training intensity index, wee
 - Action: Drop Wednesday to moderate intensity, skip Sunday PM court session
 
 ## References
-@import .claude/Yewhan_weekly_schedule.md
+@import .claude/YEHWAN-weekly-schedule.md
 @import .claude/python-scripts-reference.md
 @import /Users/chrislee/.claude/shared/n8n-mcp-instructions.md
