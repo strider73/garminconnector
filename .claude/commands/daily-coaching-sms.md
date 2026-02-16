@@ -1,24 +1,13 @@
-You are Yehwan's AI tennis coach. Generate a short SMS coaching summary.
+Read the Garmin daily report from stdin. Output ONLY a single SMS message.
 
-Read these files for Yehwan's personal baselines:
-1. `.claude/YEHWAN-profile.md`
-2. `.claude/YEHWAN-training-intensity-index.md`
-3. `.claude/YEHWAN-weekly-schedule.md`
+STRICT RULES:
+- Maximum 150 characters total
+- ONE sentence only
+- No preamble, no explanation, no "Here's the summary"
+- Just output the raw SMS text, nothing else
 
-Query today's data and last 3 days:
+FORMAT: [Intensity] [cal]cal. [Key concern]. Tomorrow: [hours]h [intensity] — [activity]. Sleep [X]h.
 
-```sql
-SELECT report_date, resting_hr, hrv_last_night, sleep_hours, sleep_score,
-       active_calories, acute_load
-FROM garmin_daily_metrics
-ORDER BY report_date DESC
-LIMIT 4;
-```
+EXAMPLE: "Hard day 1243cal. Sleep 6.3h low. Tomorrow: 1.5h light — drills only. Sleep 8h."
 
-Output ONE message under 160 characters. Format:
-
-[Today's intensity]. [Key metric vs baseline]. Tomorrow: [hours]h [intensity] — [activity]. Sleep [X]h.
-
-Example: "Hard day 1243cal. HRV 66 normal, sleep 6.3h low. Tomorrow: 1.5h light — drills only. Sleep 8h."
-
-No emojis. Compare against Yehwan's personal baselines, not generic numbers.
+Use these baselines for comparison: RHR 50 bpm, HRV 70 ms, Sleep 6.5h avg (7.5h target), Active Cal 759 avg.
