@@ -135,46 +135,86 @@ try:
             if feedback:
                 print(f"  Feedback:         {feedback}")
 
-    # --- Sleep Timing (last night) ---
+    # --- Sleep Status State Machine ---
+    COMPLETE_TYPES = {"enhanced_confirmed_final", "auto_final", "auto_manual", "manual", "device"}
+    NOT_WORN_TYPES = {"unconfirmed", "off_wrist"}
+    PENDING_TYPES = {"enhanced_tentative", "auto_tentative"}
+
+    sleep_status = "NO_DATA"
+    live_sleep_score = None
+    live_sleep_hours = None
+    live_sleep_quality = None
+    live_sleep_rem_pct = None
+    live_sleep_deep_pct = None
+
     try:
         sleep_data = garmin.get_sleep_data(today_str)
         sleep_dto = None
+        confirmation_type = None
+
         if sleep_data and "dailySleepDTO" in sleep_data:
             dto = sleep_data["dailySleepDTO"]
+            confirmation_type = (dto.get("sleepWindowConfirmationType") or "").lower()
+
+            if confirmation_type in COMPLETE_TYPES:
+                sleep_status = "COMPLETE"
+            elif confirmation_type in NOT_WORN_TYPES:
+                sleep_status = "NOT_WORN"
+            elif confirmation_type in PENDING_TYPES:
+                sleep_status = "PENDING"
+            else:
+                sleep_status = "NO_DATA"
+
             start_local = dto.get("sleepStartTimestampLocal")
             start_gmt = dto.get("sleepStartTimestampGMT")
             end_local = dto.get("sleepEndTimestampLocal")
             end_gmt = dto.get("sleepEndTimestampGMT")
             start_ts = start_local if start_local is not None else start_gmt
             end_ts = end_local if end_local is not None else end_gmt
-            if start_ts and end_ts:
+            if start_ts and end_ts and sleep_status == "COMPLETE":
                 sleep_dto = dto
 
+        print(f"\n  --- Sleep Timing (last night) ---")
         if sleep_dto:
             bed_time = datetime.utcfromtimestamp(start_ts / 1000)
             wake_time = datetime.utcfromtimestamp(end_ts / 1000)
             sleep_dur = (end_ts - start_ts) / 1000 / 3600
-            print(f"\n  --- Sleep Timing (last night) ---")
             print(f"  Bed Time:         {bed_time.strftime('%I:%M %p, %a %b %d')}")
             print(f"  Wake Time:        {wake_time.strftime('%I:%M %p, %a %b %d')}")
             print(f"  Duration:         {sleep_dur:.1f}h")
 
-            # Add sleep quality from API data
-            sleep_score = sleep_dto.get("sleepScores", {}).get("overall", {}).get("value")
-            sleep_qual = sleep_dto.get("sleepScores", {}).get("overall", {}).get("qualifierKey")
-            if sleep_score:
-                print(f"  Sleep Score:      {sleep_score}")
-            if sleep_qual:
-                print(f"  Sleep Quality:    {sleep_qual}")
+            live_sleep_hours = sleep_dur
+            live_sleep_score = sleep_dto.get("sleepScores", {}).get("overall", {}).get("value")
+            live_sleep_quality = sleep_dto.get("sleepScores", {}).get("overall", {}).get("qualifierKey")
+            if live_sleep_score:
+                print(f"  Sleep Score:      {live_sleep_score}")
+            if live_sleep_quality:
+                print(f"  Sleep Quality:    {live_sleep_quality}")
+
+            sleep_levels = sleep_dto.get("sleepLevels", {})
+            total_sleep_secs = sleep_dto.get("sleepTimeSeconds")
+            if sleep_levels and total_sleep_secs and total_sleep_secs > 0:
+                rem_secs = sleep_levels.get("remSleepSeconds", 0) or 0
+                deep_secs = sleep_levels.get("deepSleepSeconds", 0) or 0
+                live_sleep_rem_pct = rem_secs / total_sleep_secs * 100
+                live_sleep_deep_pct = deep_secs / total_sleep_secs * 100
 
             feedback = sleep_dto.get("sleepScores", {}).get("feedback")
             if feedback:
                 print(f"  Feedback:         {feedback}")
+        elif sleep_status == "NOT_WORN":
+            print(f"  Watch not worn overnight — sleep excluded from readiness")
+        elif sleep_status == "PENDING":
+            print(f"  Sleep data still processing (confirmation: {confirmation_type})")
         else:
-            print(f"\n  --- Sleep Timing (last night) ---")
-            print(f"  No sleep data (watch not worn?)")
+            print(f"  No sleep data available")
+
+        print(f"  [SLEEP_STATUS:{sleep_status}]")
+
     except Exception as e:
-        print(f"\n  (Could not fetch sleep timing: {e})")
+        print(f"\n  --- Sleep Timing (last night) ---")
+        print(f"  (Could not fetch sleep timing: {e})")
+        print(f"  [SLEEP_STATUS:NO_DATA]")
 
     # ==========================================================
     # 2) TRAINING READINESS (computed from recovery data)
@@ -224,6 +264,21 @@ try:
             t_sleep_quality = t[12]
             t_sleep_rem_pct, t_sleep_deep_pct = t[13], t[14]
             t_sleep_feedback, t_sleep_insight = t[15], t[16]
+
+            # Use live Garmin API sleep data only when COMPLETE
+            # For NOT_WORN/PENDING/NO_DATA, exclude sleep from readiness score
+            if sleep_status == "COMPLETE":
+                t_sleep_score = live_sleep_score
+                t_sleep_h = live_sleep_hours
+                t_sleep_quality = live_sleep_quality
+                t_sleep_rem_pct = live_sleep_rem_pct
+                t_sleep_deep_pct = live_sleep_deep_pct
+            else:
+                t_sleep_score = None
+                t_sleep_h = None
+                t_sleep_quality = None
+                t_sleep_rem_pct = None
+                t_sleep_deep_pct = None
 
             # Get ACWR from the live API data (more current than DB)
             t_acwr = None
