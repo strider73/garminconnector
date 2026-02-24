@@ -4,14 +4,9 @@ pipeline {
     }
 
     stages {
-        stage('Pull Latest') {
-            steps {
-                sh 'cd ~/garminconnector && git pull'
-            }
-        }
         stage('Build Docker Image') {
             steps {
-                sh 'cd ~/garminconnector && docker compose build --no-cache garmin-report'
+                sh 'docker compose -p garminconnector build --no-cache garmin-report'
             }
         }
     }
