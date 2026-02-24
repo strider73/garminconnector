@@ -3,8 +3,6 @@ services:
     build: .
     volumes:
       - ./config.py:/app/config.py:ro
-      - ./custom_scripts:/app/custom_scripts:ro
-      - ./garminconnect:/app/garminconnect:ro
       - ./.claude:/app/.claude
       - garth-tokens:/root/.garth
     environment:
