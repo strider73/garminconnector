@@ -257,7 +257,7 @@ try:
 
             # Find today's row (last row should match, but be safe)
             t = next((r for r in reversed(rows) if r[0] == today), rows[-1])
-            watch_worn = is_watch_worn(t)
+            watch_worn = is_watch_worn(t) or sleep_status == "COMPLETE"
             t_rhr, t_hrv, t_bb = t[4], t[5], t[6]
             t_sleep_h, t_sleep_score = t[3], t[7]
             t_bb_drained, t_hrv_weekly = t[8], t[9]
