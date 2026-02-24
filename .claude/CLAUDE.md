@@ -17,7 +17,7 @@ Data-driven training management system for Yehwan, built on Garmin Connect APIs.
 |------|----------|--------------|
 | 9:30pm | Store Daily Metrics | Garmin → PostgreSQL (garmin_daily_metrics) |
 | 10:00pm | Daily Report + AI | Full report → AI analysis → Email + SMS |
-| 7:30am | Morning Readiness + AI | Readiness score → AI coaching → Email + SMS |
+| 8:00am (Sat 9:00am) | Morning Readiness + AI | Readiness score → AI coaching → Email + SMS |
 
 ## AI Coach
 The AI coach uses Yehwan's personal data (profile, training intensity index, weekly schedule) to provide:

@@ -22,8 +22,9 @@
 | Script | Schedule | Purpose |
 |--------|----------|---------|
 | `store_daily_metrics.py` | 9:30pm daily | Fetches Garmin data → stores in PostgreSQL |
-| `training_readiness.py` | 7:30am daily | Morning readiness score (ACWR, sleep, HRV, RHR, body battery) |
+| `training_readiness.py` | 8:00am daily (Sat 9:00am) | Morning readiness score (ACWR, sleep, HRV, RHR, body battery) |
 | `daily_report.py` | 10pm daily | Full daily report (Dockerfile entrypoint) |
+| `store_heartrate.py` | Hourly (cron) | Fetches detailed HR readings (~2-min intervals) → stores in `garmin_heartrate_log`, cleans data >1 month |
 
 ### Manual / Ad-hoc
 | Script | Purpose |
@@ -64,7 +65,7 @@ pdm run clean       # Clean __pycache__ and .pyc files
 ## Infrastructure
 - **n8n**: `https://n8n.adventuretube.net` — workflow automation
 - **Whisper**: `https://whisper.adventuretube.net` — speech-to-text (Docker on Pi, port 8000)
-- **PostgreSQL**: on `adventuretube.net:5432`, database `adventuretube`, table `garmin_daily_metrics`
+- **PostgreSQL**: on `adventuretube.net:5432`, database `adventuretube`, tables `garmin_daily_metrics`, `garmin_heartrate_log`
 
 ## Sensitive Files
 - `config.py` - Contains credentials, do NOT commit to public repos
