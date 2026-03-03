@@ -173,5 +173,5 @@ COMMENT ON COLUMN garmin_daily_metrics.total_distance_km IS 'Total distance cove
 --   - Added indexes for common query patterns
 --
 -- Database: family_member_schedule
--- Connection: adventuretube.net:5432
+-- Connection: travel-tube.com:5432
 -- ============================================================================

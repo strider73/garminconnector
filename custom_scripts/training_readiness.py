@@ -217,7 +217,51 @@ try:
         print(f"  [SLEEP_STATUS:NO_DATA]")
 
     # ==========================================================
-    # 2) TRAINING READINESS (computed from recovery data)
+    # 2) FETCH LIVE HR/HRV/BODY BATTERY FROM API
+    #    (DB was last updated at 9:30pm yesterday — stale)
+    # ==========================================================
+    live_rhr = None
+    live_hrv = None
+    live_hrv_weekly = None
+    live_bb = None
+
+    try:
+        hr_data = garmin.get_heart_rates(today_str)
+        if hr_data:
+            live_rhr = hr_data.get("restingHeartRate")
+            print(f"\n  --- Heart Rate (live API) ---")
+            print(f"  Resting HR:       {live_rhr}")
+    except Exception as e:
+        print(f"\n  (Could not fetch live HR: {e})")
+
+    try:
+        hrv_data = garmin.get_hrv_data(today_str)
+        if hrv_data:
+            summary = hrv_data.get("hrvSummary", {})
+            live_hrv = summary.get("lastNightAvg") if summary else None
+            live_hrv_weekly = summary.get("weeklyAvg") if summary else None
+            hrv_status_str = summary.get("status", "") if summary else ""
+            print(f"\n  --- HRV (live API) ---")
+            print(f"  Last Night:       {live_hrv}")
+            print(f"  Weekly Avg:       {live_hrv_weekly}")
+            if hrv_status_str:
+                print(f"  Status:           {hrv_status_str}")
+    except Exception as e:
+        print(f"\n  (Could not fetch live HRV: {e})")
+
+    try:
+        bb_data = garmin.get_body_battery(today_str)
+        if bb_data and isinstance(bb_data, list) and len(bb_data) > 0:
+            live_bb = bb_data[0].get("charged")
+            live_bb_drained = bb_data[0].get("drained")
+            print(f"\n  --- Body Battery (live API) ---")
+            print(f"  Charged:          {live_bb}")
+            print(f"  Drained:          {live_bb_drained}")
+    except Exception as e:
+        print(f"\n  (Could not fetch live Body Battery: {e})")
+
+    # ==========================================================
+    # 3) TRAINING READINESS (computed from recovery data)
     # ==========================================================
     try:
         import psycopg2
@@ -226,6 +270,7 @@ try:
             user=DB_USER, password=DB_PASSWORD
         )
         cur = conn.cursor()
+        # Only query up to yesterday — today's row doesn't exist yet (stored at 9:30pm)
         cur.execute("""
             SELECT report_date, acute_load, acwr_ratio,
                    sleep_hours, resting_hr, hrv_last_night,
@@ -241,7 +286,7 @@ try:
             WHERE user_name = 'Yehwan'
               AND report_date >= %s AND report_date <= %s
             ORDER BY report_date
-        """, ((today - timedelta(days=6)), today))
+        """, ((today - timedelta(days=7)), yesterday))
         rows = cur.fetchall()
         conn.close()
 
@@ -255,18 +300,16 @@ try:
             vals = lambda idx: [r[idx] for r in worn_rows if r[idx] is not None]
             avg_fn = lambda v: sum(v) / len(v) if v else None
 
-            # Find today's row (last row should match, but be safe)
-            t = next((r for r in reversed(rows) if r[0] == today), rows[-1])
-            watch_worn = is_watch_worn(t) or sleep_status == "COMPLETE"
-            t_rhr, t_hrv, t_bb = t[4], t[5], t[6]
-            t_sleep_h, t_sleep_score = t[3], t[7]
-            t_bb_drained, t_hrv_weekly = t[8], t[9]
-            t_sleep_quality = t[12]
-            t_sleep_rem_pct, t_sleep_deep_pct = t[13], t[14]
-            t_sleep_feedback, t_sleep_insight = t[15], t[16]
+            # Use live API data for today's readiness — no DB fallback
+            t_rhr = live_rhr
+            t_hrv = live_hrv
+            t_hrv_weekly = live_hrv_weekly
+            t_bb = live_bb
+
+            # Determine watch-worn from live data
+            watch_worn = (t_hrv is not None and (t_bb is None or t_bb > 0)) or sleep_status == "COMPLETE"
 
             # Use live Garmin API sleep data only when COMPLETE
-            # For NOT_WORN/PENDING/NO_DATA, exclude sleep from readiness score
             if sleep_status == "COMPLETE":
                 t_sleep_score = live_sleep_score
                 t_sleep_h = live_sleep_hours
@@ -285,15 +328,16 @@ try:
             if device_status:
                 acwr_dto = device_status.get("acuteTrainingLoadDTO", {})
                 t_acwr = acwr_dto.get("dailyAcuteChronicWorkloadRatio") if acwr_dto else None
-            if t_acwr is None:
-                t_acwr = t[2]
+            if t_acwr is None and rows:
+                # Fall back to most recent DB row for ACWR only
+                t_acwr = rows[-1][2]
 
             scores = {}
             details = {}
 
             if not watch_worn:
                 print(f"\n{'=' * 55}")
-                print(f"  2. TRAINING READINESS - {today_str}")
+                print(f"  3. TRAINING READINESS - {today_str}")
                 print("=" * 55)
                 print(f"\n  *** WATCH NOT WORN OVERNIGHT ***")
                 print(f"  HRV, RHR, and Body Battery data unavailable.")
@@ -394,7 +438,7 @@ try:
 
                 if watch_worn:
                     print(f"\n{'=' * 55}")
-                    print(f"  2. TRAINING READINESS - {today_str}")
+                    print(f"  3. TRAINING READINESS - {today_str}")
                     print("=" * 55)
 
                 print(f"\n  Readiness Score:  {readiness}/100  [{level}]")
@@ -423,10 +467,10 @@ try:
                 print(f"\n  (Not enough data to compute readiness)")
 
             # ==========================================================
-            # 3) 7-DAY TRENDS
+            # 4) 7-DAY TRENDS
             # ==========================================================
             print(f"\n{'=' * 55}")
-            print(f"  3. 7-DAY TRENDS")
+            print(f"  4. 7-DAY TRENDS")
             print("=" * 55)
             print(f"\n  {'Date':<12} {'Load':>6} {'ACWR':>5} {'Sleep':>5} {'Bed':>7} {'Wake':>7} {'RHR':>4} {'HRV':>5} {'BB+':>4} {'Steps':>6} {'ActCal':>6} {'Stress':>6}")
             print(f"  {'-'*12} {'-'*6} {'-'*5} {'-'*5} {'-'*7} {'-'*7} {'-'*4} {'-'*5} {'-'*4} {'-'*6} {'-'*6} {'-'*6}")
@@ -474,7 +518,7 @@ try:
                       f" excluded from RHR/HRV/BB averages)")
 
             # ==========================================================
-            # 4) YESTERDAY'S ACTIVITY SUMMARY
+            # 5) YESTERDAY'S ACTIVITY SUMMARY
             # ==========================================================
             # Find yesterday's row
             yesterday_row = next((r for r in rows if r[0] == yesterday), None)
@@ -486,7 +530,7 @@ try:
                 y_vig_mins = yesterday_row[21]
 
                 print(f"\n{'=' * 55}")
-                print(f"  4. YESTERDAY'S ACTIVITY - {yesterday_str}")
+                print(f"  5. YESTERDAY'S ACTIVITY - {yesterday_str}")
                 print("=" * 55)
 
                 if y_steps is not None:

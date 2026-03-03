@@ -30,10 +30,10 @@ This will:
 
 ```bash
 # Using psql command line
-psql -h adventuretube.net -U postgres -d family_member_schedule -f create_garmin_table.sql
+psql -h travel-tube.com -U postgres -d family_member_schedule -f create_garmin_table.sql
 
 # Then verify
-psql -h adventuretube.net -U postgres -d family_member_schedule -f verify_table.sql
+psql -h travel-tube.com -U postgres -d family_member_schedule -f verify_table.sql
 ```
 
 ---
@@ -115,7 +115,7 @@ After creating the table, verify it:
 import psycopg2
 
 conn = psycopg2.connect(
-    host='adventuretube.net',
+    host='travel-tube.com',
     port=5432,
     database='family_member_schedule',
     user='postgres',
@@ -200,7 +200,7 @@ With the new fields, you can now:
 
 ```python
 DB_CONFIG = {
-    'host': 'adventuretube.net',
+    'host': 'travel-tube.com',
     'port': 5432,
     'database': 'family_member_schedule',  # Changed from 'adventuretube'
     'user': 'postgres',

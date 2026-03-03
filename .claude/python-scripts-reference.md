@@ -63,9 +63,9 @@ pdm run clean       # Clean __pycache__ and .pyc files
 - VCR cassettes in `tests/cassettes/` for HTTP interaction replay
 
 ## Infrastructure
-- **n8n**: `https://n8n.adventuretube.net` — workflow automation
-- **Whisper**: `https://whisper.adventuretube.net` — speech-to-text (Docker on Pi, port 8000)
-- **PostgreSQL**: on `adventuretube.net:5432`, database `adventuretube`, tables `garmin_daily_metrics`, `garmin_heartrate_log`
+- **n8n**: `https://n8n.travel-tube.com` — workflow automation
+- **Whisper**: `https://whisper.travel-tube.com` — speech-to-text (Docker on Pi, port 8000)
+- **PostgreSQL**: on `travel-tube.com:5432`, database `adventuretube`, tables `garmin_daily_metrics`, `garmin_heartrate_log`
 
 ## Sensitive Files
 - `config.py` - Contains credentials, do NOT commit to public repos

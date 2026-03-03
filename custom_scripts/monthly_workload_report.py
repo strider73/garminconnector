@@ -15,7 +15,7 @@ from calendar import month_name
 
 # Database connection from .mcp.json
 DB_CONFIG = {
-    'host': 'adventuretube.net',
+    'host': 'travel-tube.com',
     'port': 5432,
     'database': 'adventuretube',
     'user': 'postgres',

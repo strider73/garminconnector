@@ -9,7 +9,7 @@ import os
 
 # Database configuration
 DB_CONFIG = {
-    'host': 'adventuretube.net',
+    'host': 'travel-tube.com',
     'port': 5432,
     'database': 'family_member_schedule',
     'user': 'postgres',
