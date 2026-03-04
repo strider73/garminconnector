@@ -73,8 +73,8 @@ def ensure_table(conn):
     conn.commit()
 
 
-def main():
-    today_str = date.today().isoformat()
+def main(target_date=None):
+    today_str = target_date or date.today().isoformat()
 
     print(f"[store_heartrate] {datetime.now(SYDNEY_TZ).strftime('%Y-%m-%d %H:%M:%S')} — Fetching HR for {today_str}")
 
@@ -127,4 +127,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1:
+        main(target_date=sys.argv[1])
+    else:
+        main()
