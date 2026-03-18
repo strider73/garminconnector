@@ -4,6 +4,7 @@ services:
     volumes:
       - ./config.py:/app/config.py:ro
       - ./.claude:/app/.claude
+      - ./reports:/app/reports
       - garth-tokens:/root/.garth
     environment:
       - TZ=Australia/Sydney

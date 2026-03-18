@@ -7,6 +7,7 @@ Combines weekly activity + heart rate/recovery + training load
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from garminconnect import Garmin
 import garth
@@ -200,7 +201,7 @@ try:
     print("\n  Detecting naps...")
     nap_map = {}  # date_str -> "start-end (Xmin)" string
     try:
-        from custom_scripts.detect_nap import connect_db, fetch_daytime_hr, compute_rolling, detect_naps, WINDOW_SIZE
+        from detect_nap import connect_db, fetch_daytime_hr, compute_rolling, detect_naps, WINDOW_SIZE
         import statistics as nap_stats
         nap_conn = connect_db()
         for day in days:
@@ -302,8 +303,8 @@ try:
     x = np.arange(len(day_labels))
     days_with_data = max(counts['days_with_data'], 1)
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    chart_dir = os.path.join(script_dir, '..', 'reports')
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    chart_dir = os.path.join(project_root, 'reports')
     os.makedirs(chart_dir, exist_ok=True)
 
     def val_or_zero(row, key):
