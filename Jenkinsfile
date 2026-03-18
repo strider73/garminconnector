@@ -6,7 +6,9 @@ pipeline {
     stages {
         stage('Sync Host Repo') {
             steps {
-               sh 'ssh strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'      
+                sshagent(credentials: ['strider']) {
+                    sh 'ssh -o StrictHostKeyChecking=no strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'
+                }
             }
         }
         stage('Build Docker Image') {
