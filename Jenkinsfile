@@ -4,6 +4,11 @@ pipeline {
     }
 
     stages {
+        stage('Sync Host Repo') {
+            steps {
+                sh 'ssh strider@strider-pi.local "cd ~/garminconnector && git checkout -- . && git pull"'
+            }
+        }
         stage('Build Docker Image') {
             steps {
                 sh 'docker compose -p garminconnector build --no-cache garmin-report'
