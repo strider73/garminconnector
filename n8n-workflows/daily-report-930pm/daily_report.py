@@ -27,8 +27,13 @@ try:
 
     print(f"✅ Connected as: {garmin.get_full_name()}\n")
 
-    # Get today's date
-    today = date.today().isoformat()
+    # Get target date (today or from argument)
+    if len(sys.argv) > 1:
+        target_date = date.fromisoformat(sys.argv[1])
+    else:
+        target_date = date.today()
+    today = target_date.isoformat()
+
     print(f"{'=' * 80}")
     print(f"📊 DAILY HEALTH & ACTIVITY REPORT - {today}")
     print(f"{'=' * 80}\n")
@@ -38,7 +43,6 @@ try:
 
     seven_day_max = {
         'steps': 0,
-        'distance': 0,
         'active_calories': 0,
         'sleep_hours': 0,
         'sleep_score': 0,
@@ -49,34 +53,21 @@ try:
 
     # Fetch last 7 days data
     for i in range(1, 8):
-        past_date = (date.today() - timedelta(days=i)).isoformat()
+        past_date = (target_date - timedelta(days=i)).isoformat()
 
         try:
             # Get activity stats
             stats = garmin.get_stats(past_date)
             if stats:
-                steps = stats.get('totalSteps', 0)
-                distance_km = stats.get('totalDistanceMeters', 0) / 1000
-                active_cal = stats.get('activeKilocalories', 0)
+                steps = stats.get('totalSteps', 0) or 0
+                active_cal = stats.get('activeKilocalories', 0) or 0
 
-                # GPS error detection: skip days with unrealistic distance (forgot to stop activity)
-                # For tennis player (no cycling): >20km with <30 cal/km or >40km with <35 cal/km
-                is_gps_error = False
-                if distance_km > 20 and active_cal > 0:
-                    cal_per_km = active_cal / distance_km
-                    if distance_km > 40 and cal_per_km < 35:
-                        is_gps_error = True
-                    elif distance_km > 20 and cal_per_km < 30:
-                        is_gps_error = True
+                seven_day_max['steps'] = max(seven_day_max['steps'], steps)
+                seven_day_max['active_calories'] = max(seven_day_max['active_calories'], active_cal)
 
-                if not is_gps_error:
-                    seven_day_max['steps'] = max(seven_day_max['steps'], steps)
-                    seven_day_max['distance'] = max(seven_day_max['distance'], distance_km)
-                    seven_day_max['active_calories'] = max(seven_day_max['active_calories'], active_cal)
-
-                    moderate = stats.get('moderateIntensityMinutes', 0)
-                    vigorous = stats.get('vigorousIntensityMinutes', 0)
-                    seven_day_max['intensity_mins'] = max(seven_day_max['intensity_mins'], moderate + (vigorous * 2))
+                moderate = stats.get('moderateIntensityMinutes', 0) or 0
+                vigorous = stats.get('vigorousIntensityMinutes', 0) or 0
+                seven_day_max['intensity_mins'] = max(seven_day_max['intensity_mins'], moderate + (vigorous * 2))
 
             # Get sleep data
             sleep_data = garmin.get_sleep_data(past_date)
@@ -111,7 +102,44 @@ try:
     if seven_day_max['min_stress'] == float('inf'):
         seven_day_max['min_stress'] = 0
 
-    # ===== 1. SLEEP DATA =====
+    # ===== 1. WORKOUTS/ACTIVITIES (moved to top) =====
+    print("🎯 WORKOUTS & ACTIVITIES")
+    print("-" * 80)
+    try:
+        activities = garmin.get_activities_by_date(today, today)
+
+        if activities:
+            print(f"Total Activities: {len(activities)}\n")
+
+            for i, activity in enumerate(activities, 1):
+                activity_name = activity.get('activityName', 'Unnamed')
+                activity_type = activity.get('activityType', {}).get('typeKey', 'Unknown')
+                start_time = activity.get('startTimeLocal', 'N/A')
+                duration_mins = activity.get('duration', 0) / 60
+
+                print(f"{i}. {activity_name}")
+                print(f"   Type:            {activity_type}")
+                print(f"   Start Time:      {start_time}")
+                print(f"   Duration:        {duration_mins:.1f} minutes")
+
+                if activity.get('calories'):
+                    print(f"   Calories:        {activity['calories']} kcal")
+
+                if activity.get('averageHR'):
+                    print(f"   Avg Heart Rate:  {activity['averageHR']} bpm")
+
+                if activity.get('maxHR'):
+                    print(f"   Max Heart Rate:  {activity['maxHR']} bpm")
+
+                print()
+        else:
+            print("No workouts recorded for today")
+    except Exception as e:
+        print(f"Could not fetch activities: {e}")
+
+    print()
+
+    # ===== 2. SLEEP DATA =====
     print("💤 SLEEP ANALYSIS")
     print("-" * 80)
     try:
@@ -138,28 +166,13 @@ try:
             sleep_seconds = daily_sleep.get('sleepTimeSeconds') or 0
             sleep_hours = sleep_seconds / 3600
 
-            deep_sleep_mins = (daily_sleep.get('deepSleepSeconds') or 0) / 60
-            light_sleep_mins = (daily_sleep.get('lightSleepSeconds') or 0) / 60
-            rem_sleep_mins = (daily_sleep.get('remSleepSeconds') or 0) / 60
-            awake_mins = (daily_sleep.get('awakeSleepSeconds') or 0) / 60
-
             # Sleep score
             sleep_scores = daily_sleep.get('sleepScores', {})
             overall_score = sleep_scores.get('overall', {}).get('value', 'N/A')
-            quality_score = sleep_scores.get('qualityRecovery', {}).get('value', 'N/A')
-            duration_score = sleep_scores.get('duration', {}).get('value', 'N/A')
 
             print(f"Sleep Period:       {sleep_start} → {sleep_end}")
             print(f"Total Duration:     {sleep_hours:.2f} hours ({sleep_seconds / 60:.0f} mins)")
-            print(f"\nSleep Stages:")
-            print(f"  Deep Sleep:       {deep_sleep_mins:.0f} mins ({deep_sleep_mins/sleep_seconds*100*60:.1f}%)" if sleep_seconds > 0 else "  Deep Sleep: N/A")
-            print(f"  Light Sleep:      {light_sleep_mins:.0f} mins ({light_sleep_mins/sleep_seconds*100*60:.1f}%)" if sleep_seconds > 0 else "  Light Sleep: N/A")
-            print(f"  REM Sleep:        {rem_sleep_mins:.0f} mins ({rem_sleep_mins/sleep_seconds*100*60:.1f}%)" if sleep_seconds > 0 else "  REM Sleep: N/A")
-            print(f"  Awake:            {awake_mins:.0f} mins")
-            print(f"\nSleep Scores:")
-            print(f"  Overall Score:    {overall_score}")
-            print(f"  Quality Score:    {quality_score}")
-            print(f"  Duration Score:   {duration_score}")
+            print(f"Sleep Score:        {overall_score}")
 
             # Comparison with best of last 7 days
             if seven_day_max['sleep_hours'] > 0 or seven_day_max['sleep_score'] > 0:
@@ -180,30 +193,26 @@ try:
 
     print()
 
-    # ===== 2. ACTIVITY & FITNESS DATA =====
+    # ===== 3. ACTIVITY & FITNESS DATA =====
     print("🏃 ACTIVITY & FITNESS")
     print("-" * 80)
     try:
         stats = garmin.get_stats(today)
 
         if stats:
-            steps = stats.get('totalSteps', 0)
-            step_goal = stats.get('dailyStepGoal', 10000)
-            distance_km = stats.get('totalDistanceMeters', 0) / 1000
+            steps = stats.get('totalSteps', 0) or 0
+            step_goal = stats.get('dailyStepGoal', 10000) or 10000
 
-            total_calories = stats.get('totalKilocalories', 0)
-            active_calories = stats.get('activeKilocalories', 0)
-            bmr_calories = stats.get('bmrKilocalories', 0)
+            total_calories = stats.get('totalKilocalories', 0) or 0
+            active_calories = stats.get('activeKilocalories', 0) or 0
+            bmr_calories = stats.get('bmrKilocalories', 0) or 0
 
-            moderate_mins = stats.get('moderateIntensityMinutes', 0)
-            vigorous_mins = stats.get('vigorousIntensityMinutes', 0)
+            moderate_mins = stats.get('moderateIntensityMinutes', 0) or 0
+            vigorous_mins = stats.get('vigorousIntensityMinutes', 0) or 0
             total_intensity = moderate_mins + (vigorous_mins * 2)
-            intensity_goal = stats.get('weeklyIntensityMinutesGoal', 150)
-
-            floors = stats.get('floorsClimbed', 0)
+            intensity_goal = stats.get('weeklyIntensityMinutesGoal', 150) or 150
 
             print(f"Steps:              {steps:,} / {step_goal:,} ({steps/step_goal*100:.1f}%)")
-            print(f"Distance:           {distance_km:.2f} km")
             print(f"\nCalories:")
             print(f"  Total Burned:     {total_calories:,} kcal")
             print(f"  Active:           {active_calories:,} kcal")
@@ -212,21 +221,15 @@ try:
             print(f"  Moderate:         {moderate_mins} mins")
             print(f"  Vigorous:         {vigorous_mins} mins")
             print(f"  Total (Weekly):   {total_intensity} / {intensity_goal} mins")
-            print(f"\nFloors Climbed:     {floors}")
 
             # Comparison with best of last 7 days
-            if any([seven_day_max['steps'] > 0, seven_day_max['distance'] > 0, seven_day_max['active_calories'] > 0, seven_day_max['intensity_mins'] > 0]):
+            if any([seven_day_max['steps'] > 0, seven_day_max['active_calories'] > 0, seven_day_max['intensity_mins'] > 0]):
                 print(f"\n🔄 Comparison to Best of Last 7 Days:")
                 if seven_day_max['steps'] > 0:
                     diff_steps = steps - seven_day_max['steps']
                     comparison = "=" if diff_steps == 0 else ("↗" if diff_steps > 0 else "↘")
                     pct = (steps / seven_day_max['steps'] * 100) if seven_day_max['steps'] > 0 else 0
                     print(f"  Steps:            {comparison} Best was {seven_day_max['steps']:,} (today: {pct:.1f}%, {diff_steps:+,})")
-                if seven_day_max['distance'] > 0:
-                    diff_dist = distance_km - seven_day_max['distance']
-                    comparison = "=" if diff_dist == 0 else ("↗" if diff_dist > 0 else "↘")
-                    pct = (distance_km / seven_day_max['distance'] * 100) if seven_day_max['distance'] > 0 else 0
-                    print(f"  Distance:         {comparison} Best was {seven_day_max['distance']:.2f} km (today: {pct:.1f}%, {diff_dist:+.2f} km)")
                 if seven_day_max['active_calories'] > 0:
                     diff_cal = active_calories - seven_day_max['active_calories']
                     comparison = "=" if diff_cal == 0 else ("↗" if diff_cal > 0 else "↘")
@@ -244,7 +247,7 @@ try:
 
     print()
 
-    # ===== 3. HEART RATE DATA =====
+    # ===== 4. HEART RATE DATA =====
     print("❤️  HEART RATE")
     print("-" * 80)
     try:
@@ -272,7 +275,7 @@ try:
 
     print()
 
-    # ===== 4. STRESS & BODY BATTERY =====
+    # ===== 5. STRESS & BODY BATTERY =====
     print("🧘 STRESS & RECOVERY")
     print("-" * 80)
     try:
@@ -306,49 +309,6 @@ try:
         print(f"Could not fetch stress/recovery data: {e}")
 
     print()
-
-    # ===== 5. TODAY'S WORKOUTS/ACTIVITIES =====
-    print("🎯 WORKOUTS & ACTIVITIES")
-    print("-" * 80)
-    try:
-        activities = garmin.get_activities_by_date(today, today)
-
-        if activities:
-            print(f"Total Activities: {len(activities)}\n")
-
-            for i, activity in enumerate(activities, 1):
-                activity_name = activity.get('activityName', 'Unnamed')
-                activity_type = activity.get('activityType', {}).get('typeKey', 'Unknown')
-                start_time = activity.get('startTimeLocal', 'N/A')
-                duration_mins = activity.get('duration', 0) / 60
-
-                print(f"{i}. {activity_name}")
-                print(f"   Type:            {activity_type}")
-                print(f"   Start Time:      {start_time}")
-                print(f"   Duration:        {duration_mins:.1f} minutes")
-
-                if activity.get('distance'):
-                    distance = activity['distance'] / 1000
-                    print(f"   Distance:        {distance:.2f} km")
-
-                    if duration_mins > 0:
-                        pace = duration_mins / distance
-                        print(f"   Avg Pace:        {pace:.2f} min/km")
-
-                if activity.get('calories'):
-                    print(f"   Calories:        {activity['calories']} kcal")
-
-                if activity.get('averageHR'):
-                    print(f"   Avg Heart Rate:  {activity['averageHR']} bpm")
-
-                if activity.get('maxHR'):
-                    print(f"   Max Heart Rate:  {activity['maxHR']} bpm")
-
-                print()
-        else:
-            print("No workouts recorded for today")
-    except Exception as e:
-        print(f"Could not fetch activities: {e}")
 
 except Exception as e:
     print(f"\n❌ Error: {e}")
