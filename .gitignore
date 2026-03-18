@@ -2,6 +2,9 @@
 your_data/
 pdm.lock
 
+# Local-only test commands (not deployed to server)
+.claude/commands/n8n-*.md
+
 # Generated reports (keep sample-report.pdf as example)
 *.pdf
 !**/sample-report.pdf

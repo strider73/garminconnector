@@ -42,6 +42,7 @@ The AI coach uses Yehwan's personal data (profile, training intensity index, wee
 
 ## References
 - Project structure & file rules: @import project_structure.md
+- Deployment & update process: @import DEPLOYMENT.md
 - Athlete profile, baselines & alert thresholds: @import .claude/reference/YEHWAN-profile.md
 - Training intensity index & load monitoring: @import .claude/reference/YEHWAN-training-intensity-index.md
 - Weekly schedule & session times: @import .claude/reference/YEHWAN-weekly-schedule.md
