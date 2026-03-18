@@ -40,30 +40,29 @@ This means the container gets files from **two sources**:
 
 ## How Jenkins Makes This Work
 
-Jenkins runs inside a Docker container (`jenkins-agent`) on strider-pi. The challenge was:
-- Jenkins builds the Docker image in its own workspace (`/home/jenkins/agent/workspace/`)
-- But n8n runs containers from `~/garminconnector/` on the host
-- Jenkins container can't directly access the host filesystem
+### Why a Sync Stage Was Added
 
-**Solution**: Jenkins SSHs from its container to `strider@192.168.1.199` (the host) using the Jenkins agent's RSA key (`/home/jenkins/.ssh/id_rsa`), which was added to strider's `authorized_keys`.
+The `.claude/` folder (commands, reference files, templates, agents) is mounted from the host filesystem into Docker containers. When code is pushed, Jenkins rebuilds the Docker image (which updates Python scripts), but the host's `~/garminconnector/` folder still has the old `.claude/` files. Without syncing, the mounted files would be stale.
 
-### Jenkinsfile Pipeline
+To eliminate manual `git pull` on the server, a `Sync Host Repo` stage was added to the Jenkinsfile that runs `git pull` on the host automatically before building the Docker image.
+
+### Why SSH Is Needed
+
+Jenkins agent runs inside a Docker container on strider-pi. It cannot directly access the host filesystem (`/home/strider/garminconnector/`). The only way to run `git pull` on the host is to SSH out of the container and into the host.
+
+### How SSH Was Set Up
+
+1. The Jenkins agent container already had an RSA key pair at `/home/jenkins/.ssh/id_rsa`
+2. The public key (`id_rsa.pub`) was added to `/home/strider/.ssh/authorized_keys` on the host
+3. The Jenkinsfile specifies the key explicitly with `-i` because Jenkins may run commands as a different user (e.g. `root`) who doesn't have keys in their own `~/.ssh/`
+
 ```groovy
 stage('Sync Host Repo') {
-    // SSH from Jenkins container → host, pull latest code
-    sh 'ssh -i /home/jenkins/.ssh/id_rsa strider@192.168.1.199
-         "cd ~/garminconnector && git checkout -- . && git pull"'
+    sh 'ssh -i /home/jenkins/.ssh/id_rsa -o StrictHostKeyChecking=no strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'
 }
 stage('Build Docker Image') {
-    // Rebuild image with latest Python scripts
     sh 'docker compose -p garminconnector build --no-cache garmin-report'
 }
-```
-
-### SSH Key Setup
-- Jenkins agent container has `/home/jenkins/.ssh/id_rsa` (RSA key)
-- This public key is in `/home/strider/.ssh/authorized_keys` on the host
-- Jenkins runs as `jenkins` user but SSH works because the key is explicitly specified with `-i`
 
 ## Testing
 
