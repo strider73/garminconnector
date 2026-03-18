@@ -3,6 +3,20 @@
 ## Purpose
 Data-driven training management system for Yehwan, built on Garmin Connect APIs. Automated daily reports, readiness scoring, and AI coaching via n8n workflows.
 
+## How the System Works
+```
+n8n (scheduler) → SSH → Docker runs Python script → stdout (raw Garmin data)
+                → SSH → Claude CLI + /command < raw data → stdout (AI coaching)
+                → Combines both → Email (data + AI) + Telegram (AI only)
+```
+1. **n8n** triggers on schedule and SSHs into the server
+2. **Docker** runs a Python script that pulls from Garmin API and prints raw data to stdout
+3. **n8n** captures that output and pipes it into **Claude CLI** with a slash command
+4. **Claude** reads the raw data + reference files (`.claude/reference/`) and outputs coaching text
+5. **n8n** combines both outputs into an email and sends via Gmail + Telegram
+
+Scripts live in `n8n-workflows/`, commands in `.claude/commands/`, reference data in `.claude/reference/`.
+
 ## Athlete Quick Reference
 - **Sport**: Tennis (UTR 8 — advanced tournament level)
 - **Age**: 20 | **Height**: 6'1" | **Weight**: 75kg
@@ -27,9 +41,10 @@ The AI coach uses Yehwan's personal data (profile, training intensity index, wee
 4. **Tomorrow's recommendation** — specific intensity level, court time, session count, activities
 
 ## References
+- Project structure & file rules: @import project_structure.md
 - Athlete profile, baselines & alert thresholds: @import .claude/reference/YEHWAN-profile.md
 - Training intensity index & load monitoring: @import .claude/reference/YEHWAN-training-intensity-index.md
 - Weekly schedule & session times: @import .claude/reference/YEHWAN-weekly-schedule.md
-- AI coaching logic & prompt templates: @import .claude/commands/ai-coaching-template.md
+- AI coaching logic & prompt templates: @import .claude/commands/not-used/ai-coaching-template.md
 - Python scripts: @import .claude/reference/python-scripts-reference.md
 - n8n instructions: @import /Users/chrislee/.claude/shared/n8n-mcp-instructions.md
