@@ -6,8 +6,8 @@ pipeline {
     stages {
         stage('Sync Host Repo') {
             steps {
-                sshagent(credentials: ['strider']) {
-                    sh 'ssh -o StrictHostKeyChecking=no strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'
+                withCredentials([sshUserPrivateKey(credentialsId: 'strider', keyFileVariable: 'SSH_KEY')]) {
+                    sh 'ssh -i $SSH_KEY -o StrictHostKeyChecking=no strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'
                 }
             }
         }
