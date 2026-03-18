@@ -6,7 +6,7 @@ Combines weekly activity + heart rate/recovery + training load
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from garminconnect import Garmin
 import garth

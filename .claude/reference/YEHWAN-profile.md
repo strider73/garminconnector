@@ -57,7 +57,7 @@ When 3+ consecutive days show ANY of:
 - Sleep Score <60
 
 **Action:** Drop Wednesday to moderate intensity, skip Sunday PM court session.
-See training adjustments: @import .claude/YEHWAN-training-intensity-index.md
+See training adjustments: @import .claude/reference/YEHWAN-training-intensity-index.md
 
 ## Tennis HR Fingerprint
 

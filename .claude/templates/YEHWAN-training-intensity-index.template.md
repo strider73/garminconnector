@@ -72,7 +72,7 @@ Sun   ███░░░░░░░  LOW          (jog + optional court)
 ```
 
 **Natural taper:** Mon-Wed hard → Thu-Fri easing off → Sat competition
-For exact session times: @import .claude/YEHWAN-weekly-schedule.md
+For exact session times: @import .claude/reference/YEHWAN-weekly-schedule.md
 
 ## Training Philosophy
 

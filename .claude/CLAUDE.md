@@ -27,9 +27,9 @@ The AI coach uses Yehwan's personal data (profile, training intensity index, wee
 4. **Tomorrow's recommendation** — specific intensity level, court time, session count, activities
 
 ## References
-- Athlete profile, baselines & alert thresholds: @import .claude/YEHWAN-profile.md
-- Training intensity index & load monitoring: @import .claude/YEHWAN-training-intensity-index.md
-- Weekly schedule & session times: @import .claude/YEHWAN-weekly-schedule.md
-- AI coaching logic & prompt templates: @import .claude/ai-coaching-template.md
-- Python scripts: @import .claude/python-scripts-reference.md
+- Athlete profile, baselines & alert thresholds: @import .claude/reference/YEHWAN-profile.md
+- Training intensity index & load monitoring: @import .claude/reference/YEHWAN-training-intensity-index.md
+- Weekly schedule & session times: @import .claude/reference/YEHWAN-weekly-schedule.md
+- AI coaching logic & prompt templates: @import .claude/commands/ai-coaching-template.md
+- Python scripts: @import .claude/reference/python-scripts-reference.md
 - n8n instructions: @import /Users/chrislee/.claude/shared/n8n-mcp-instructions.md

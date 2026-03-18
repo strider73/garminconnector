@@ -17,7 +17,7 @@ from config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 # Paths relative to project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 TEMPLATE_DIR = os.path.join(PROJECT_ROOT, ".claude", "templates")
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, ".claude")
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, ".claude", "reference")
 
 PROFILE_TEMPLATE = os.path.join(TEMPLATE_DIR, "YEHWAN-profile.template.md")
 PROFILE_OUTPUT = os.path.join(OUTPUT_DIR, "YEHWAN-profile.md")

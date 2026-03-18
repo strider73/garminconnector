@@ -50,7 +50,7 @@ When 3+ consecutive days show ANY of:
 - Sleep Score <{score_red_flag}
 
 **Action:** Drop Wednesday to moderate intensity, skip Sunday PM court session.
-See training adjustments: @import .claude/YEHWAN-training-intensity-index.md
+See training adjustments: @import .claude/reference/YEHWAN-training-intensity-index.md
 
 ## Data Quality Notes
 - **Watch-worn detection**: Only days with HRV present and Body Battery >0 are used for recovery metrics

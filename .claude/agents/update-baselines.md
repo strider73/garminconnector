@@ -21,8 +21,8 @@ If the script fails, report the error and stop.
 
 Read both files and check:
 
-1. `.claude/YEHWAN-profile.md` — verify no `?` placeholder values remain, all numbers look reasonable (RHR 40-70, HRV 30-120, VO2 40-70, sleep 3-12h)
-2. `.claude/YEHWAN-training-intensity-index.md` — verify intensity percentages sum to ~100%, all table rows have data, no `?` values
+1. `.claude/reference/YEHWAN-profile.md` — verify no `?` placeholder values remain, all numbers look reasonable (RHR 40-70, HRV 30-120, VO2 40-70, sleep 3-12h)
+2. `.claude/reference/YEHWAN-training-intensity-index.md` — verify intensity percentages sum to ~100%, all table rows have data, no `?` values
 
 ### Step 3: Report results
 
