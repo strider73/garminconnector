@@ -197,54 +197,43 @@ try:
 
         all_data.append(row)
 
-    # ===== NAP DETECTION =====
-    print("\n  Detecting naps...")
-    nap_map = {}  # date_str -> "start-end (Xmin)" string
-    try:
-        from detect_nap import connect_db, fetch_daytime_hr, compute_rolling, detect_naps, WINDOW_SIZE
-        import statistics as nap_stats
-        nap_conn = connect_db()
-        for day in days:
-            day_str = day.isoformat()
-            rows_hr = fetch_daytime_hr(nap_conn, day_str)
-            if not rows_hr:
-                continue
-            ntimes = [r[0] for r in rows_hr]
-            nhrs = [r[1] for r in rows_hr]
-            ravg, rstd = compute_rolling(nhrs, WINDOW_SIZE)
-            naps = detect_naps(ntimes, nhrs, ravg, rstd)
-            day_median = nap_stats.median(nhrs)
-            naps = [n for n in naps if n['avg_hr'] < day_median - 10]
-            if naps:
-                parts = []
-                for n in naps:
-                    s = n['start'].strftime('%-I:%M%p').lower()
-                    e = n['end'].strftime('%-I:%M%p').lower()
-                    parts.append(f"{s}-{e} ({n['duration_min']}m)")
-                nap_map[day_str] = ", ".join(parts)
-        nap_conn.close()
-    except Exception as e:
-        print(f"  Warning: Nap detection failed: {e}")
+    # ===== FETCH ACTIVITIES =====
+    print("\n  Fetching activities...")
+    activities_by_day = {}  # date_str -> list of activity dicts
+    for day in days:
+        day_str = day.isoformat()
+        try:
+            day_activities = garmin.get_activities_by_date(day_str, day_str)
+            if day_activities:
+                activities_by_day[day_str] = day_activities
+        except:
+            pass
 
-    # ===== TABLE 1: SLEEP & RECOVERY =====
+    # ===== TABLE 1: ACTIVITIES =====
     print("\n" + "-" * 115)
-    print("  SLEEP & RECOVERY")
+    print("  ACTIVITIES")
     print("-" * 115)
-    print(f"{'Date':<10} | {'Bedtime':>8} | {'Wake Up':>8} | {'Hrs':>5} | {'Deep':>5} | {'REM':>5} | {'HRV':>5} | {'RHR':>4} | {'Nap'}")
+    print(f"{'Date':<10} | {'Activity':<25} | {'Type':<15} | {'Duration':>8} | {'Cal':>6} | {'Avg HR':>6} | {'Max HR':>6}")
     print("-" * 115)
 
-    for i, row in enumerate(all_data):
-        bed = row['sleep_start'] if row['sleep_start'] else "-"
-        wake = row['sleep_end'] if row['sleep_end'] else "-"
-        hrs = f"{row['sleep_hours']:.1f}" if row['sleep_hours'] else "-"
-        deep = f"{row['deep_mins']}m" if row['deep_mins'] else "-"
-        rem = f"{row['rem_mins']}m" if row['rem_mins'] else "-"
-        hrv = str(row['hrv']) if row['hrv'] else "-"
-        rhr = str(row['resting_hr']) if row['resting_hr'] else "-"
-        nap = nap_map.get(days[i].isoformat(), "-")
-        print(f"{row['date']:<10} | {bed:>8} | {wake:>8} | {hrs:>5} | {deep:>5} | {rem:>5} | {hrv:>5} | {rhr:>4} | {nap}")
+    for i, day in enumerate(days):
+        day_str = day.isoformat()
+        day_name = day.strftime('%a %m/%d')
+        day_acts = activities_by_day.get(day_str, [])
+        if day_acts:
+            for j, act in enumerate(day_acts):
+                name = act.get('activityName', 'Unnamed')[:25]
+                atype = act.get('activityType', {}).get('typeKey', '-')[:15]
+                dur = act.get('duration', 0) / 60
+                cal = act.get('calories', 0)
+                avg_hr = act.get('averageHR', 0)
+                max_hr = act.get('maxHR', 0)
+                date_col = day_name if j == 0 else ''
+                print(f"{date_col:<10} | {name:<25} | {atype:<15} | {dur:>6.0f}m | {cal:>5} | {avg_hr:>6} | {max_hr:>6}")
+        else:
+            print(f"{day_name:<10} | {'Rest day':<25} | {'-':<15} | {'-':>8} | {'-':>6} | {'-':>6} | {'-':>6}")
 
-    print("-" * 105)
+    print("-" * 115)
 
     # ===== 2-WEEK AVERAGES (from Garmin API, prior 2 weeks) =====
     print("\n  Loading 2-week averages...")
@@ -299,10 +288,6 @@ try:
         print(f"  Warning: Could not load 2-week averages: {e}")
 
     # ===== GENERATE PDF REPORT =====
-    day_labels = [r['date'] for r in all_data]
-    x = np.arange(len(day_labels))
-    days_with_data = max(counts['days_with_data'], 1)
-
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     chart_dir = os.path.join(project_root, 'reports')
     os.makedirs(chart_dir, exist_ok=True)
@@ -310,12 +295,6 @@ try:
     def val_or_zero(row, key):
         v = row.get(key)
         return int(v) if v else 0
-
-    def add_avg_line(ax, value, label, color, alpha=0.7):
-        if value:
-            ax.axhline(y=value, color=color, linestyle='--', linewidth=1.5, alpha=alpha)
-            ax.text(ax.get_xlim()[1], value, f' 2w avg: {value:,.0f}',
-                    va='center', ha='left', fontsize=7, color=color, alpha=alpha)
 
     # Compute summary values
     avg_sleep = totals['sleep'] / max(counts['sleep'], 1)
@@ -347,25 +326,8 @@ try:
 
     pdf_path = os.path.join(chart_dir, f'trainer_report_{today.isoformat()}.pdf')
 
-    # Pre-compute chart data
-    steps_vals = [val_or_zero(r, 'steps') for r in all_data]
-    act_vals = [val_or_zero(r, 'active_cal') for r in all_data]
-    rhr_vals = [val_or_zero(r, 'resting_hr') for r in all_data]
-    mhr_vals = [val_or_zero(r, 'max_hr') for r in all_data]
-    hrv_vals = [val_or_zero(r, 'hrv') for r in all_data]
-    intensity_vals = [(val_or_zero(r, 'moderate_mins') + val_or_zero(r, 'vigorous_mins')) for r in all_data]
-
     next_week_cal_target = round(avg_act_cal * 1.007)
     next_week_steps_target = round(avg_steps * 1.007)
-    sorted_days_by_act = sorted(all_data, key=lambda r: val_or_zero(r, 'active_cal'), reverse=True)
-    top1 = sorted_days_by_act[0] if sorted_days_by_act else None
-    min_act_day = min((r for r in all_data if val_or_zero(r, 'active_cal') > 0), key=lambda r: val_or_zero(r, 'active_cal'), default=None)
-    max_int_day = max(all_data, key=lambda r: val_or_zero(r, 'moderate_mins') + val_or_zero(r, 'vigorous_mins'))
-    max_int = val_or_zero(max_int_day, 'moderate_mins') + val_or_zero(max_int_day, 'vigorous_mins')
-    avg_2w_act = avg_2w.get('active_cal', 0)
-
-    # Shortened day labels for compact charts
-    short_labels = [d.strftime('%a') for d in days]
 
     with PdfPages(pdf_path) as pdf:
 
@@ -379,17 +341,133 @@ try:
         fig.text(0.50, 0.955, f'{days[0].strftime("%b %d")} to {days[-1].strftime("%b %d, %Y")}',
                  ha='center', fontsize=13, color='#444')
 
-        # --- SECTION 1: SLEEP TABLE (top band) ---
-        fig.text(0.04, 0.930, 'SLEEP & RECOVERY', fontsize=13, fontweight='bold', color='#000')
+        # --- SECTION 1: ACTIVITIES TIMELINE (visual weekly schedule) ---
+        from matplotlib.patches import FancyBboxPatch
+        # Color map for activity types
+        act_colors = {
+            'tennis': '#2070C0', 'tennis_v2': '#2070C0',
+            'running': '#D04020',
+            'cycling': '#2E7D32',
+            'strength_training': '#D08800', 'gym': '#D08800',
+            'walking': '#6A9E3A', 'hiking': '#6A9E3A',
+            'swimming': '#00A0C0',
+        }
+        default_act_color = '#888888'
 
-        headers = ['Day', 'Bed', 'Wake', 'Hrs', 'Deep', 'REM', 'HRV', 'RHR', 'Nap']
-        col_x = [0.04, 0.12, 0.21, 0.29, 0.35, 0.41, 0.47, 0.53, 0.59]
-        y = 0.912
-        for j, h in enumerate(headers):
-            fig.text(col_x[j], y, h, fontsize=9.5, fontweight='bold', color='#333')
+        ax_timeline = fig.add_axes([0.10, 0.72, 0.85, 0.21])
+        ax_timeline.set_title('ACTIVITIES', fontsize=13, fontweight='bold', loc='left', pad=8)
+
+        # Y-axis: days (top to bottom)
+        day_positions = list(range(len(days)))
+        ax_timeline.set_yticks(day_positions)
+        ax_timeline.set_yticklabels([d.strftime('%a') for d in days], fontsize=9, fontweight='bold')
+        ax_timeline.set_ylim(len(days) - 0.5, -0.5)
+
+        # X-axis: hours 7am to 11pm
+        ax_timeline.set_xlim(7, 23)
+        ax_timeline.set_xticks(range(7, 24, 2))
+        ax_timeline.set_xticklabels([f'{h%12 or 12}{"am" if h < 12 else "pm"}' for h in range(7, 24, 2)], fontsize=7.5)
+        ax_timeline.grid(axis='x', alpha=0.15, linestyle='-')
+        ax_timeline.grid(axis='y', alpha=0.1, linestyle='-')
+        ax_timeline.spines['top'].set_visible(False)
+        ax_timeline.spines['right'].set_visible(False)
+
+        total_activities = 0
+        total_act_duration = 0
+        total_act_cal = 0
+        hardest_day = None
+        hardest_cal = 0
+
+        for i, day in enumerate(days):
+            day_str = day.isoformat()
+            day_acts = activities_by_day.get(day_str, [])
+            day_cal = 0
+            if day_acts:
+                for act in day_acts:
+                    start_str = act.get('startTimeLocal', '')
+                    dur_sec = act.get('duration', 0)
+                    dur_hrs = dur_sec / 3600
+                    atype = act.get('activityType', {}).get('typeKey', '')
+                    name = act.get('activityName', atype.replace('_', ' ').title())
+                    cal = act.get('calories', 0) or 0
+                    total_activities += 1
+                    total_act_duration += dur_sec / 60
+                    total_act_cal += cal
+                    day_cal += cal
+
+                    # Parse start hour
+                    try:
+                        start_dt = datetime.strptime(start_str, '%Y-%m-%d %H:%M:%S')
+                        start_hour = start_dt.hour + start_dt.minute / 60
+                    except:
+                        start_hour = 12
+                    if start_hour < 7:
+                        start_hour = 7
+
+                    color = act_colors.get(atype.lower(), default_act_color)
+                    bar_width = max(dur_hrs, 0.4)
+
+                    rect = FancyBboxPatch((start_hour, i - 0.32), bar_width, 0.64,
+                                          boxstyle="round,pad=0.05", facecolor=color,
+                                          edgecolor='white', linewidth=1.5, alpha=0.85)
+                    ax_timeline.add_patch(rect)
+
+                    # Label: always to the right of the block
+                    dur_min = int(dur_sec / 60)
+                    label_text = f'{name} ({dur_min}m)'
+                    ax_timeline.text(start_hour + bar_width + 0.15, i, label_text,
+                                     ha='left', va='center', fontsize=7, fontweight='bold', color='#222')
+
+                if day_cal > hardest_cal:
+                    hardest_cal = day_cal
+                    hardest_day = day
+            else:
+                ax_timeline.text(15, i, 'Rest day', ha='center', va='center',
+                                 fontsize=8, color='#BBB', style='italic')
+
+        # AI briefing under activity timeline
+        avg_dur = total_act_duration / max(total_activities, 1)
+        tennis_count = sum(1 for d in activities_by_day.values() for a in d if 'tennis' in a.get('activityType', {}).get('typeKey', '').lower())
+        rest_days = sum(1 for d in days if d.isoformat() not in activities_by_day)
+        hardest_label = hardest_day.strftime('%a %m/%d') if hardest_day else '-'
+        consecutive_days = 0
+        max_consecutive = 0
+        for d in days:
+            if d.isoformat() in activities_by_day:
+                consecutive_days += 1
+                max_consecutive = max(max_consecutive, consecutive_days)
+            else:
+                consecutive_days = 0
+
+        # Consistent left margin (aligned with chart left edge)
+        L = 0.10
+
+        # Activity AI briefing
+        brief_y = 0.690
+        fig.text(L, brief_y,
+                 f'{total_activities} sessions ({tennis_count} tennis, {total_activities - tennis_count} other) | '
+                 f'{total_act_duration:.0f} min total | {total_act_cal:,} cal burned',
+                 fontsize=8.5, color='#333', style='italic')
+        fig.text(L, brief_y - 0.015,
+                 f'Hardest day: {hardest_label} ({hardest_cal:,} cal) | Avg session: {avg_dur:.0f} min | '
+                 f'Consecutive training days: {max_consecutive}',
+                 fontsize=8.5, color='#333', style='italic')
+        fig.text(L, brief_y - 0.030,
+                 f'Rest days: {rest_days}/7 — {"good recovery balance" if rest_days >= 2 else "consider adding a rest day" if rest_days == 1 else "no rest days — high injury risk"}',
+                 fontsize=8.5, color='#CC0000' if rest_days == 0 else '#333', style='italic')
+
+        # --- SECTION 2: SLEEP & RECOVERY TABLE ---
+        sleep_y = 0.61
+        fig.text(L, sleep_y, 'SLEEP & RECOVERY', fontsize=13, fontweight='bold', color='#000')
+
+        sleep_headers = ['Day', 'Bed', 'Wake', 'Hrs', 'Deep', 'REM', 'HRV', 'RHR']
+        sleep_col_x = [L, L+0.08, L+0.19, L+0.30, L+0.38, L+0.47, L+0.56, L+0.65]
+        sleep_y -= 0.025
+        for j, h in enumerate(sleep_headers):
+            fig.text(sleep_col_x[j], sleep_y, h, fontsize=9.5, fontweight='bold', color='#333')
 
         for i, row in enumerate(all_data):
-            y -= 0.020
+            sleep_y -= 0.025
             bed = row['sleep_start'].replace(' ', '') if row['sleep_start'] else "-"
             wake = row['sleep_end'].replace(' ', '') if row['sleep_end'] else "-"
             hrs = f"{row['sleep_hours']:.1f}" if row['sleep_hours'] else "-"
@@ -397,109 +475,48 @@ try:
             rem = f"{row['rem_mins']}m" if row['rem_mins'] else "-"
             hrv = str(row['hrv']) if row['hrv'] else "-"
             rhr = str(row['resting_hr']) if row['resting_hr'] else "-"
-            nap = nap_map.get(days[i].isoformat(), "-")
-            vals = [days[i].strftime('%a'), bed, wake, hrs, deep, rem, hrv, rhr, nap]
+            vals = [days[i].strftime('%a'), bed, wake, hrs, deep, rem, hrv, rhr]
             for j, v in enumerate(vals):
                 c = '#CC0000' if j == 3 and row['sleep_hours'] and row['sleep_hours'] < 5 else '#111'
-                fig.text(col_x[j], y, str(v), fontsize=9, color=c, family='monospace', fontweight='medium')
+                fig.text(sleep_col_x[j], sleep_y, str(v), fontsize=9, color=c, family='monospace', fontweight='medium')
 
-        # Sleep summary line
-        y -= 0.022
-        fig.text(0.04, y,
-                 f'Avg {avg_sleep:.1f}h/night (target 7.5h) | Deep {totals["deep"]/max(counts["sleep"],1):.0f}m | REM {totals["rem"]/max(counts["sleep"],1):.0f}m | Naps {len(nap_map)}/{len(days)} days — body demanding recovery.',
-                 fontsize=9, color='#333', style='italic')
+        # Sleep AI briefing
+        sleep_y -= 0.024
+        nights_below_6 = sum(1 for r in all_data if r['sleep_hours'] and r['sleep_hours'] < 6)
+        nights_above_7 = sum(1 for r in all_data if r['sleep_hours'] and r['sleep_hours'] >= 7)
+        avg_deep = totals['deep'] / max(counts['sleep'], 1)
+        avg_rem = totals['rem'] / max(counts['sleep'], 1)
+        fig.text(L, sleep_y,
+                 f'Avg {avg_sleep:.1f}h/night (target 7.5h) | Deep {avg_deep:.0f}m | REM {avg_rem:.0f}m avg/night',
+                 fontsize=8.5, color='#333', style='italic')
+        fig.text(L, sleep_y - 0.015,
+                 f'{nights_above_7}/{counts["sleep"]} nights above 7h | {nights_below_6} nights below 6h | '
+                 f'HRV avg {avg_hrv:.0f}ms | RHR avg {avg_rhr:.0f}bpm',
+                 fontsize=8.5, color='#333', style='italic')
+        sleep_status = 'sleep debt accumulating — prioritize earlier bedtimes' if avg_sleep < 7 else 'sleep on track'
+        fig.text(L, sleep_y - 0.030,
+                 sleep_status,
+                 fontsize=8.5, color='#CC0000' if avg_sleep < 7 else '#333', style='italic')
+        sleep_y -= 0.030
 
-        # --- SECTION 2: ACTIVITY CHART (full width) + 3-line comment ---
-        ax_act = fig.add_axes([0.08, 0.57, 0.86, 0.15])
-        ax_act.plot(x, steps_vals, 'o-', color='#2070C0', linewidth=2.5, markersize=6, label='Steps')
-        ax_act.plot(x, act_vals, '^-', color='#D04020', linewidth=2.5, markersize=6, label='Active Cal')
-        for i, v in enumerate(steps_vals):
-            if v: ax_act.annotate(f'{v//1000}k', (i, v), textcoords='offset points', xytext=(0, 8), ha='center', fontsize=7.5, fontweight='bold', color='#2070C0')
-        for i, v in enumerate(act_vals):
-            if v: ax_act.annotate(f'{int(v):,}', (i, v), textcoords='offset points', xytext=(0, -11), ha='center', fontsize=7.5, fontweight='bold', color='#D04020')
-        if avg_2w.get('steps'):
-            ax_act.axhline(y=avg_2w['steps'], color='#2070C0', linestyle='--', linewidth=1.2, alpha=0.6)
-        if avg_2w.get('active_cal'):
-            ax_act.axhline(y=avg_2w['active_cal'], color='#D04020', linestyle='--', linewidth=1.2, alpha=0.6)
-        ax_act.set_xticks(x)
-        ax_act.set_xticklabels(short_labels, fontsize=8, fontweight='bold')
-        ax_act.tick_params(axis='y', labelsize=7)
-        ax_act.legend(fontsize=8, loc='upper left', framealpha=0.9)
-        ax_act.set_title('ACTIVITY', fontsize=11, fontweight='bold', loc='left', pad=5)
-        ax_act.grid(axis='y', alpha=0.3)
-        ax_act.spines['top'].set_visible(False)
-        ax_act.spines['right'].set_visible(False)
+        # --- SECTION 3: NEXT WEEK / YEARLY GOAL (bottom band) ---
+        plan_y = sleep_y - 0.045
+        fig.text(L, plan_y, 'NEXT WEEK PLAN', fontsize=12, fontweight='bold', color='#000')
 
-        # Activity 3-line comment
-        avg_2w_steps = avg_2w.get('steps', 0)
-        min_step_day = min((r for r in all_data if val_or_zero(r, 'steps') > 0), key=lambda r: val_or_zero(r, 'steps'), default=all_data[0])
-        ac1_y = 0.540
-        fig.text(0.06, ac1_y,
-                 f'{top1["date"]} was biggest at {val_or_zero(top1, "steps"):,} steps / {val_or_zero(top1, "active_cal"):,} active cal — well above 2w average.',
-                 fontsize=9.5, color='#111')
-        fig.text(0.06, ac1_y - 0.018,
-                 f'Most days above 2w baseline of {avg_2w_steps:,.0f} steps, {min_step_day["date"]} only rest day ({val_or_zero(min_step_day, "steps"):,} steps).',
-                 fontsize=9.5, color='#111')
-        fig.text(0.06, ac1_y - 0.036,
-                 f'Active cal averaged {avg_act_cal:,.0f}/day vs 2w avg {avg_2w_act:,.0f} — {"above" if avg_act_cal > avg_2w_act else "below"} recent baseline.',
-                 fontsize=9.5, color='#111')
-
-        # --- SECTION 3: HEART & RECOVERY CHART (full width) + 3-line comment ---
-        ax_hr = fig.add_axes([0.08, 0.29, 0.80, 0.15])
-        l1, = ax_hr.plot(x, rhr_vals, 'o-', color='#C04040', linewidth=2.5, markersize=6, label='RHR')
-        l2, = ax_hr.plot(x, mhr_vals, 's-', color='#901010', linewidth=2.5, markersize=6, label='Max HR')
-        l3, = ax_hr.plot(x, hrv_vals, '^-', color='#3060C0', linewidth=2.5, markersize=6, label='HRV')
-        for i, v in enumerate(rhr_vals):
-            if v: ax_hr.annotate(str(v), (i, v), textcoords='offset points', xytext=(0, -10), ha='center', fontsize=7.5, fontweight='bold', color='#C04040')
-        for i, v in enumerate(mhr_vals):
-            if v: ax_hr.annotate(str(v), (i, v), textcoords='offset points', xytext=(0, 8), ha='center', fontsize=7.5, fontweight='bold', color='#901010')
-        ax_hr2 = ax_hr.twinx()
-        l4, = ax_hr2.plot(x, intensity_vals, 'D-', color='#D08800', linewidth=2.5, markersize=6, label='Intensity')
-        ax_hr2.tick_params(axis='y', labelsize=7, labelcolor='#D08800')
-        ax_hr.set_xticks(x)
-        ax_hr.set_xticklabels(short_labels, fontsize=8, fontweight='bold')
-        ax_hr.tick_params(axis='y', labelsize=7)
-        if avg_2w.get('resting_hr'):
-            ax_hr.axhline(y=avg_2w['resting_hr'], color='#C04040', linestyle='--', linewidth=1.2, alpha=0.6)
-        if avg_2w.get('hrv'):
-            ax_hr.axhline(y=avg_2w['hrv'], color='#3060C0', linestyle='--', linewidth=1.2, alpha=0.6)
-        lines = [l1, l2, l3, l4]
-        ax_hr.legend(lines, [l.get_label() for l in lines], fontsize=8, loc='upper left', framealpha=0.9)
-        ax_hr.set_title('HEART & RECOVERY', fontsize=11, fontweight='bold', loc='left', pad=5)
-        ax_hr.grid(axis='y', alpha=0.3)
-        ax_hr.spines['top'].set_visible(False)
-
-        # Heart & Recovery 3-line comment
-        avg_2w_hrv = avg_2w.get('hrv', 0)
-        hc1_y = 0.255
-        fig.text(0.06, hc1_y,
-                 f'Pushed hard on {max_int_day["date"]} ({max_int}min intensity) — recovery stayed below 2w avg of {avg_2w_hrv:.0f}ms most of the week.',
-                 fontsize=9.5, color='#111')
-        fig.text(0.06, hc1_y - 0.018,
-                 f'Resting HR stable at {avg_rhr:.0f}bpm (range {min(resting_hrs)}-{max(resting_hrs)}) — cardiovascular system is strong, no stress signals.',
-                 fontsize=9.5, color='#111')
-        fig.text(0.06, hc1_y - 0.036,
-                 f'Sleep at {avg_sleep:.1f}h is the bottleneck — napping {len(nap_map)} days means the body is compensating for what it\'s not getting at night.',
-                 fontsize=9.5, color='#111')
-
-        # --- SECTION 4: NEXT WEEK / YEARLY GOAL (bottom band) ---
-        plan_y = hc1_y - 0.062
-        fig.text(0.04, plan_y, 'NEXT WEEK PLAN', fontsize=12, fontweight='bold', color='#000')
-
-        plan_y -= 0.022
-        fig.text(0.06, plan_y, f'Cal target: {next_week_cal_target:,}/day  |  Steps target: {next_week_steps_target:,}/day  |  Sleep: above 6.5h',
+        plan_y -= 0.025
+        fig.text(L, plan_y, f'Cal target: {next_week_cal_target:,}/day  |  Steps target: {next_week_steps_target:,}/day  |  Sleep: above 6.5h',
                  fontsize=9.5, color='#111')
 
         # Yearly goal strip — Active Cal
-        plan_y -= 0.028
+        plan_y -= 0.035
         cal_progress = min(max(pct_cal / 100, 0), 1)
         cal_bar = "█" * int(cal_progress * 15) + "░" * (15 - int(cal_progress * 15))
         cal_status = "on track" if avg_act_cal >= expected_cal_now else "below"
         cal_color = '#2E7D32' if avg_act_cal >= expected_cal_now else '#CC0000'
 
-        fig.text(0.04, plan_y, '2026 GOAL (+30%)', fontsize=10, fontweight='bold', color='#222')
+        fig.text(L, plan_y, '2026 GOAL (+30%)', fontsize=10, fontweight='bold', color='#222')
         plan_y -= 0.018
-        fig.text(0.06, plan_y,
+        fig.text(L + 0.02, plan_y,
                  f'Cal:   [{cal_bar}] {pct_cal:.0f}%   now {avg_act_cal:,.0f} / target {TARGET_ACT_CAL:,}  — {cal_status}',
                  fontsize=8.5, family='monospace', fontweight='bold', color=cal_color)
 
@@ -510,7 +527,7 @@ try:
         steps_color = '#2E7D32' if avg_steps >= expected_steps_now else '#CC0000'
 
         plan_y -= 0.018
-        fig.text(0.06, plan_y,
+        fig.text(L + 0.02, plan_y,
                  f'Steps: [{steps_bar}] {pct_steps:.0f}%   now {avg_steps:,.0f} / target {TARGET_STEPS:,}  — {steps_status}',
                  fontsize=8.5, family='monospace', fontweight='bold', color=steps_color)
 

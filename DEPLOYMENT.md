@@ -50,14 +50,29 @@ To eliminate manual `git pull` on the server, a `Sync Host Repo` stage was added
 
 Jenkins agent runs inside a Docker container on strider-pi. It cannot directly access the host filesystem (`/home/strider/garminconnector/`). The only way to run `git pull` on the host is to SSH out of the container and into the host.
 
-### How SSH Was Set Up
+### Jenkins Agent able to git pull now as strider  — Make Jenkins Agent able to login as strider on Pi1
 
-1. The Jenkins agent container already had an RSA key pair at `/home/jenkins/.ssh/id_rsa`
-2. The public key (`id_rsa.pub`) was added to `/home/strider/.ssh/authorized_keys` on the host
-3. The Jenkinsfile specifies the key explicitly with `-i` because Jenkins may run commands as a different user (e.g. `root`) who doesn't have keys in their own `~/.ssh/`
+**Concept**: SSH authentication works by key pairs. If the server (Pi1) has your public key in its `authorized_keys` file, you can log in without a password.
 
+**What was done**:
+1. The Jenkins agent container already had an RSA key pair at `/home/jenkins/.ssh/id_rsa` (originally created for master-agent pairing, reused here)
+2. Copied the public key from inside the Jenkins agent container and added it to strider's trusted keys on Pi1:
+   ```bash
+   docker exec jenkins-agent cat /home/jenkins/.ssh/id_rsa.pub >> /home/strider/.ssh/authorized_keys
+   ```
+   This one command tells Pi1: "When someone connects with this key, let them in as strider."
+3. In the Jenkinsfile, `-i /home/jenkins/.ssh/id_rsa` explicitly points to the key file because the Jenkins process may run as `root` (who has no keys in `/root/.ssh/`), not as the `jenkins` user
+
+**Two SSH keys involved in the full pipeline**:
+| Key | Location | Purpose |
+|-----|----------|---------|
+| Jenkins agent's `id_rsa` | `/home/jenkins/.ssh/id_rsa` (inside container) | Jenkins container → Pi1 host (to run `git pull`) |
+| strider's `id_ed25519` | `/home/strider/.ssh/id_ed25519` (on Pi1 host) | Pi1 host → GitHub (to pull code) |
+
+**Jenkinsfile pipeline**:
 ```groovy
 stage('Sync Host Repo') {
+    // Jenkins container SSHs into Pi1 as strider, then strider pulls from GitHub
     sh 'ssh -i /home/jenkins/.ssh/id_rsa -o StrictHostKeyChecking=no strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'
 }
 stage('Build Docker Image') {
