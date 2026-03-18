@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install dependencies
-RUN pip install --no-cache-dir "garth>=0.5.17,<0.6.0" "psycopg2-binary>=2.9"
+RUN pip install --no-cache-dir "garth>=0.5.17,<0.6.0" "psycopg2-binary>=2.9" "matplotlib>=3.7" "numpy>=1.24"
 
 # Copy project files
 COPY garminconnect/ ./garminconnect/
