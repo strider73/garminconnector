@@ -3,84 +3,92 @@
 ## Architecture
 
 ```
-[Local Mac] → git push → [GitHub] → webhook → [Jenkins] → build Docker image
-                                                    ↓
-                                              [strider-pi]
-                                              ├── Docker image (Python scripts)
-                                              ├── ~/garminconnector/.claude/ (mounted volume)
-                                              └── n8n triggers workflows via SSH
+[Local Mac] → git push → [GitHub] → webhook → [Jenkins on strider-pi]
+                                                    │
+                                                    ├── Stage 1: SSH to host → git pull
+                                                    │   (updates .claude/ mounted volume)
+                                                    │
+                                                    └── Stage 2: docker compose build
+                                                        (updates Python scripts in image)
+                                                    │
+                                              [n8n on strider-pi]
+                                              triggers workflows on schedule via SSH → Docker
 ```
 
-## Two things that need updating on the server
+## Fully Automated — Just Push
 
-| What | Where | How it updates |
-|------|-------|---------------|
-| Python scripts | Inside Docker image | Jenkins rebuilds image after push |
-| .claude/ files (commands, reference, templates, agents) | Host filesystem (mounted volume) | `git pull` on strider-pi |
+Everything is automated. After `git push`, Jenkins handles both:
 
-Docker mounts `~/garminconnector/.claude/` into the container at `/app/.claude/`. So the container always uses the **host's** version of `.claude/` files, not what's baked into the image.
+1. **`git pull` on host** — updates `.claude/` files (commands, reference, templates, agents) that Docker mounts as a volume
+2. **Docker image rebuild** — updates Python scripts (`n8n-workflows/`) and Garmin client (`garminconnect/`) baked into the image
 
-## Deploy Steps
+No manual SSH or commands needed on the server.
 
-### After pushing code changes:
+## Why Two Updates Are Needed
 
-1. **Push to GitHub**
-   ```bash
-   git add <files> && git commit -m "message" && git push
-   ```
+Docker mounts `~/garminconnector/.claude/` from the host filesystem into the container at `/app/.claude/`. This is necessary because:
 
-2. **Update server repo (git pull)**
-   ```bash
-   ssh strider@strider-pi.local "cd ~/garminconnector && git checkout -- . && git pull"
-   ```
-   This updates the `.claude/` mounted volume files. Required when you change:
-   - `.claude/commands/` (coaching prompts)
-   - `.claude/reference/` (athlete data)
-   - `.claude/templates/` (baseline templates)
-   - `.claude/agents/` (agent scripts)
+- The `update_baselines.py` script regenerates reference files every night at 9pm
+- Docker containers are disposable (`--rm`) — files inside are lost after each run
+- The mount persists data between container runs so the next workflow reads fresh baselines
 
-3. **Rebuild Docker image**
-   ```bash
-   ssh strider@strider-pi.local "cd ~/garminconnector && docker compose build --no-cache garmin-report"
-   ```
-   This updates the Python scripts inside the image. Required when you change:
-   - `n8n-workflows/*/` (workflow Python scripts)
-   - `garminconnect/` (Garmin API client)
-   - `Dockerfile`
+This means the container gets files from **two sources**:
+| Source | What | Updated by |
+|--------|------|-----------|
+| Docker image (`COPY`) | Python scripts, garminconnect library | `docker compose build` |
+| Host mount (`volumes:`) | .claude/ (commands, reference, templates, agents) | `git pull` |
 
-### Quick deploy (does both):
-```bash
-ssh strider@strider-pi.local "cd ~/garminconnector && git checkout -- . && git pull && docker compose build --no-cache garmin-report"
+## How Jenkins Makes This Work
+
+Jenkins runs inside a Docker container (`jenkins-agent`) on strider-pi. The challenge was:
+- Jenkins builds the Docker image in its own workspace (`/home/jenkins/agent/workspace/`)
+- But n8n runs containers from `~/garminconnector/` on the host
+- Jenkins container can't directly access the host filesystem
+
+**Solution**: Jenkins SSHs from its container to `strider@192.168.1.199` (the host) using the Jenkins agent's RSA key (`/home/jenkins/.ssh/id_rsa`), which was added to strider's `authorized_keys`.
+
+### Jenkinsfile Pipeline
+```groovy
+stage('Sync Host Repo') {
+    // SSH from Jenkins container → host, pull latest code
+    sh 'ssh -i /home/jenkins/.ssh/id_rsa strider@192.168.1.199
+         "cd ~/garminconnector && git checkout -- . && git pull"'
+}
+stage('Build Docker Image') {
+    // Rebuild image with latest Python scripts
+    sh 'docker compose -p garminconnector build --no-cache garmin-report'
+}
 ```
 
-### Jenkins (automated but incomplete)
-Jenkins auto-triggers on push via GitHub webhook and rebuilds the Docker image. However:
-- Jenkins runs on `jenkins-agent` (Docker container on strider-pi)
-- It builds the image in its own workspace, NOT in `~/garminconnector`
-- The `git pull` stage in Jenkinsfile needs SSH from jenkins container to host (not yet working)
-- **For now: run the quick deploy command manually after pushing**
+### SSH Key Setup
+- Jenkins agent container has `/home/jenkins/.ssh/id_rsa` (RSA key)
+- This public key is in `/home/strider/.ssh/authorized_keys` on the host
+- Jenkins runs as `jenkins` user but SSH works because the key is explicitly specified with `-i`
 
 ## Testing
 
 ### Local testing (before push)
 Use slash commands to test each workflow locally:
 ```
-/n8n-daily-report-930pm
-/n8n-morning-readiness-8am
-/n8n-store-daily-metrics-9pm
-/n8n-hr-health-monitor-3h
-/n8n-weekly-trainer-report-thu-8am
+/n8n-daily-report-930pm          (script + AI coaching)
+/n8n-morning-readiness-8am       (script + AI coaching)
+/n8n-store-daily-metrics-9pm     (script only)
+/n8n-hr-health-monitor-3h        (script only)
+/n8n-weekly-trainer-report-thu-8am (script only, needs Docker for matplotlib)
 ```
+These commands are local-only (gitignored via `.claude/commands/n8n-*.md`).
 
 ### Server testing (after deploy)
-Test from the n8n UI — click "Test Workflow" for each workflow. Or check latest executions:
-- Store Daily Metrics: runs at 9pm daily
-- Daily Report: runs at 9:30pm daily
-- Morning Readiness: runs at 8am daily (Sat 9am)
-- HR Health Monitor: runs every 3 hours
-- Weekly Trainer Report: runs Thursday 8am
+Test from the n8n UI — click "Test Workflow" for each workflow:
+- Store Daily Metrics: scheduled 9pm daily
+- Daily Report: scheduled 9:30pm daily
+- Morning Readiness: scheduled 8am daily (Sat 9am)
+- HR Health Monitor: every 3 hours
+- Weekly Trainer Report: Thursday 8am
 
-## What changes require what
+## What Changes Require What
+
+Both are handled automatically by Jenkins. This table is for reference only:
 
 | Changed file | git pull needed? | Docker rebuild needed? |
 |-------------|-----------------|----------------------|
@@ -94,3 +102,9 @@ Test from the n8n UI — click "Test Workflow" for each workflow. Or check lates
 | `docker-compose.yml` | Yes | Yes |
 | `Jenkinsfile` | No | No (Jenkins reads from GitHub) |
 | n8n workflow (in n8n UI) | No | No |
+
+## Manual Deploy (fallback)
+If Jenkins is down, run this from your Mac:
+```bash
+ssh strider@strider-pi.local "cd ~/garminconnector && git checkout -- . && git pull && docker compose build --no-cache garmin-report"
+```
