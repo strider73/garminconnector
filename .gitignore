@@ -2,6 +2,10 @@
 your_data/
 pdm.lock
 
+# Generated reports (keep sample-report.pdf as example)
+*.pdf
+!**/sample-report.pdf
+
 # Upstream library (cloned reference copy)
 python-garminconnect/
 
