@@ -1,34 +1,38 @@
 # YEHWAN — Weekly Training Schedule
 
 ## Monday — High Intensity
-- 9:00–10:30 AM — On court
-- 6:00–7:45 PM — On court
-- **Total: 3.25 hours | Intensity: High**
+- 8:45–10:30 AM — On court (Fawkner - Chanchai)
+- 11:00 AM–3:00 PM — Uni (non-training)
+- 4:30–7:00 PM — On court (Hillside - Marlino)
+- **Total: 4.25 hours court | Intensity: High**
 
 ## Tuesday — Highest Volume Day
-- 9:00–11:30 AM — On court
-- 5:00–6:00 PM — Gym (1 hour, before evening court)
-- 6:00–8:00 PM — On court
+- 9:00–11:30 AM — Squad training (Fawkner)
+- 5:00–6:00 PM — Fitness Gym
+- 6:00–8:00 PM — On court (LaTrobe/Melton - Hit)
 - **Total: 5.5 hours (4.5h court + 1h gym) | Intensity: Very High**
 
-## Wednesday — High Intensity
-- 10:00 AM–12:00 PM — On court
-- 5:00–6:30 PM — On court
-- **Total: 3.5 hours | Intensity: High**
+## Wednesday — High Volume
+- 7:30–9:00 AM — On court (Dad)
+- 10:00 AM–12:00 PM — On court (HC/Melton - Hit)
+- 7:00–8:30 PM — On court (Melton - Hit)
+- **Total: 5 hours court | Intensity: High**
 
 ## Thursday — Moderate / Mixed
+- 7:30–8:30 AM — On court (Dad)
 - 9:30–10:30 AM — Fitness with Royden (fitness trainer)
-- 1:00–3:00 PM — On court
-- 5:00–7:00 PM — Coaching kids (casual job, mostly feeding balls — low physical demand)
-- **Total: 3h active training + 2h light coaching | Intensity: Moderate**
+- 11:00 AM–3:00 PM — Uni (non-training)
+- 3:30–7:00 PM — Work (non-training)
+- **Total: 2h active training (1h court + 1h fitness) | Intensity: Moderate**
 
-## Friday — Pre-Competition / Light
-- 9:00–10:00 AM — On court (light)
-- 6:15–8:15 PM — Squad training (social/fun, low-moderate intensity)
-- **Total: 3 hours | Intensity: Low-Moderate**
+## Friday — Pre-Competition / Moderate
+- 8:00–9:30 AM — On court (Fawkner - Marlino)
+- 2:00–4:00 PM — Uni Online (non-training)
+- 6:00–8:15 PM — Squad training (Fawkner)
+- **Total: 3.75 hours court | Intensity: Moderate**
 
 ## Saturday — Competition
-- **Match at 1:00 PM**
+- **Match day (when scheduled)**
 - Warm-up + match
 - Post-match: stretching, hydration, nutrition recovery
 - **Intensity: Very High (match dependent)**
