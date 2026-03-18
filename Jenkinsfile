@@ -6,9 +6,7 @@ pipeline {
     stages {
         stage('Sync Host Repo') {
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'strider', keyFileVariable: 'SSH_KEY')]) {
-                    sh 'ssh -i $SSH_KEY -o StrictHostKeyChecking=no strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'
-                }
+                sh 'ssh -i /home/jenkins/.ssh/id_rsa -o StrictHostKeyChecking=no strider@192.168.1.199 "cd ~/garminconnector && git checkout -- . && git pull"'
             }
         }
         stage('Build Docker Image') {
