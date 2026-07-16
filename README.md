@@ -1,6 +1,8 @@
 # GarminConnector
 
-Data-driven training management system for Yehwan, an advanced tennis player (UTR 8). Pulls daily data from Garmin Connect, scores training readiness, and generates AI coaching reports — fully automated via n8n and Claude Code.
+Yehwan wears a Garmin watch every day. This project turns that raw watch data — sleep, HRV, resting heart rate, training load, workouts — into something a coach would actually say to him: how recovered he is this morning, whether today should be a hard session or a rest day, and how the week is trending.
+
+Nothing here is manual. Five n8n workflows run on a schedule, each one SSHing into a Raspberry Pi to run a Python script against the Garmin Connect API, storing the results in PostgreSQL and handing the numbers to Claude to turn into a short, personal coaching message. Two of the five stop at "store the data" or "check the pipeline is healthy" — the other three go all the way to Yehwan's inbox and phone: a morning readiness check before he trains, a nightly recap of how the day actually went, and a weekly PDF for his coach.
 
 ## How It Works
 
@@ -18,13 +20,22 @@ n8n (scheduler) → SSH → Docker runs Python script → stdout (raw Garmin dat
 
 ## Automated Workflows
 
-| Time | Workflow | What it does |
-|------|----------|---------------|
-| 9:30pm | Store Daily Metrics | Garmin → PostgreSQL (`garmin_daily_metrics`) |
-| 10:00pm | Daily Report + AI | Full report → AI analysis → Email + SMS |
-| 8:00am (Sat 9:00am) | Morning Readiness + AI | Readiness score → AI coaching → Email + SMS |
-| Every 3h | HR Health Monitor | Heart rate data → PostgreSQL |
-| Thursday 8am | Weekly Trainer Report | PDF with activity timeline, sleep table, AI briefings |
+Five n8n workflows, all live on the same n8n instance, each doing one job on a fixed schedule:
+
+**Garmin Store Daily Metrics — 9:00pm daily**
+Pulls the day's full metrics from Garmin (training load, HRV, sleep stages, resting HR, body battery, stress, steps/calories) and upserts them into the `garmin_daily_metrics` table. Right after, it regenerates Yehwan's baseline reference files (`YEHWAN-profile.md`, `YEHWAN-training-intensity-index.md`) from the updated history, so every AI coaching message from that point on is comparing against current numbers, not stale ones. No email, no AI — this workflow just keeps the data warehouse and the baselines honest.
+
+**Garmin Daily Report — 9:30pm daily**
+Fetches today's full breakdown (sleep, activity, heart rate, stress, workouts) plus the last 7 days for context, then hands it to Claude to classify the day's intensity, check recovery against baseline, and recommend tomorrow's training. Goes out as an email to Chris and Yehwan (raw data + AI analysis) and a short Telegram message to both with just the coaching text.
+
+**Garmin Morning Readiness — weekday + Sunday 8:00am, Saturday 9:00am**
+Same idea but first thing in the morning: overnight HRV, sleep, resting HR, body battery, plus yesterday's load. Garmin's sleep data isn't always ready by 8am, so this one has a retry loop built in — it waits 30 minutes and checks again, up to 4 hours, before generating the coaching message. Same delivery: email with data + AI, Telegram with AI only.
+
+**HR Collection Health Monitor — every 3 hours**
+Not a coaching workflow — a watchdog. A separate cron job on the server pulls heart rate readings roughly every 2 minutes; this workflow just checks PostgreSQL for any reading in the last 3 hours. If nothing shows up, it alerts Chris and Yehwan on Telegram that the watch might not be worn or the collection job might have died.
+
+**Weekly Trainer Report — Thursday 8:00am**
+Builds a 7-day PDF (activity charts, HR/recovery trends, training load, sleep table) straight from Python and matplotlib — no AI step. Emailed to Chris as a quick read before Thursday's session with the trainer.
 
 ## Project Structure
 
