@@ -6,6 +6,11 @@ authors = [
     {name = "Ron Klinkien", email = "ron@cyberjunky.nl"},
 ]
 dependencies = [
+    # NOTE: garth is now unmaintained upstream (deprecated as of v0.8.0, 2026-03-28) —
+    # Garmin changed their auth flow and broke garth's mobile-auth approach.
+    # Dependabot PR #2 wants >=0.5.17,<0.7.0 (avoids the breaking 0.7.0 SSO migration
+    # and the 0.8.0 deprecation, but still worth verifying login still works before merging).
+    # Revisit: may need to fork garth or migrate auth approach. See github.com/matin/garth/discussions/222
     "garth>=0.5.17,<0.6.0",
 ]
 readme = "README.md"
