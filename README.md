@@ -1,8 +1,23 @@
 # GarminConnector
 
-Yehwan wears a Garmin watch every day. This project turns that raw watch data — sleep, HRV, resting heart rate, training load, workouts — into something a coach would actually say to him: how recovered he is this morning, whether today should be a hard session or a rest day, and how the week is trending.
+## Behind the Story
 
-Nothing here is manual. Five n8n workflows run on a schedule, each one SSHing into a Raspberry Pi to run a Python script against the Garmin Connect API, storing the results in PostgreSQL and handing the numbers to Claude to turn into a short, personal coaching message. Two of the five stop at "store the data" or "check the pipeline is healthy" — the other three go all the way to Yehwan's inbox and phone: a morning readiness check before he trains, a nightly recap of how the day actually went, and a weekly PDF for his coach.
+A Garmin watch collects an enormous amount of physiological data — HRV, sleep, training load, body battery, stress — but turns almost none of it into real insight. Garmin's own AI coaching add-on, Connect+, costs $6.99/month and was widely panned at launch: users complained it just restated numbers they could already see for free (like step counts) while paywalling features on watches that already cost hundreds of dollars.
+
+This project set out to close that gap for one athlete first: my son, a competitive tennis player. We already knew what real coaching looked like: Yehwan's personal trainer, at about $120 an hour a session, would review the week's data and set real goals for the week ahead. This project aims for that same standard of coaching, but daily instead of weekly, focused on two things:
+
+1. **Avoiding injury** — the main reason to hire a trainer in the first place is to avoid overexercising into injury. Injury is one of the scariest, most disruptive things an athlete can face, and one of the biggest threats to actually improving. Catching fatigue or poor recovery the morning after, instead of finding out five days later, is what makes that possible.
+2. **Planning** — knowing exactly where Yehwan's current condition and progress sit against the goal, at any given moment. That's what makes it possible to adjust the plan when needed, and just as importantly, to recognize and reinforce what's already working.
+
+Long-term, the aim is to turn this into a commercial service that extracts the value wearables collect but never deliver.
+
+## Overview
+
+It starts with Yehwan and the watch. Two things have to happen on his end: he wears it all the time, and when he goes to play tennis, he starts the Tennis activity on the watch and stops it when he's done — that's what gives every session a precise start and end time. With the watch on, Garmin's API is pulling his heart rate roughly every 2 minutes, 24 hours a day. If it goes more than 3 hours without a reading, Yehwan gets an SMS telling him to put the watch back on.
+
+Everything downstream is built on that raw stream. This project turns it — sleep, HRV, resting heart rate, training load, workouts — into something a coach would actually say to him: how recovered he is this morning, whether today should be a hard session or a rest day, and how the week is trending.
+
+The day runs on a fixed rhythm. At 9pm, the day's metrics land in the database and Yehwan's profile and training intensity baselines get updated. A half hour later, he gets a report on how today went, compared against the last 7 days — a visual read on where he's at. The most important report comes in the morning: it pulls yesterday's training (hours, pattern, intensity) together with overnight recovery data, and it's the combination of the two that lets the AI actually recommend today's training — how much, what pattern, what intensity — and flag if he's at risk of overexercising into injury. Thursday at 8am, right before he sees his human trainer, he gets a weekly report to check how the week went and what's next — something to compare against the trainer's own read on his progress.
 
 ## How It Works
 
@@ -11,6 +26,8 @@ n8n (scheduler) → SSH → Docker runs Python script → stdout (raw Garmin dat
                 → SSH → Claude CLI + /command < raw data → stdout (AI coaching)
                 → Combines both → Email (data + AI) + Telegram (AI only)
 ```
+
+Nothing here is manual. Five n8n workflows run on a schedule, each one SSHing into a Raspberry Pi to run a Python script against the Garmin Connect API, storing the results in PostgreSQL and handing the numbers to Claude to turn into a short, personal coaching message. Two of the five stop at "store the data" or "check the pipeline is healthy" — the other three go all the way to Yehwan's inbox and phone: a morning readiness check before he trains, a nightly recap of how the day actually went, and a weekly PDF for his coach.
 
 1. **n8n** triggers on a schedule and SSHs into the server
 2. **Docker** runs a Python script that pulls from the Garmin API and prints raw data to stdout
@@ -21,6 +38,8 @@ n8n (scheduler) → SSH → Docker runs Python script → stdout (raw Garmin dat
 ## Automated Workflows
 
 Five n8n workflows, all live on the same n8n instance, each doing one job on a fixed schedule:
+
+![n8n workflows overview](docs/images/n8n-workflows-overview.png)
 
 **Garmin Store Daily Metrics — 9:00pm daily**
 Pulls the day's full metrics from Garmin (training load, HRV, sleep stages, resting HR, body battery, stress, steps/calories) and upserts them into the `garmin_daily_metrics` table. Right after, it regenerates Yehwan's baseline reference files (`YEHWAN-profile.md`, `YEHWAN-training-intensity-index.md`) from the updated history, so every AI coaching message from that point on is comparing against current numbers, not stale ones. No email, no AI — this workflow just keeps the data warehouse and the baselines honest.
